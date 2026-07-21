@@ -9,3 +9,5 @@ app/target/
 
 # Mac files
 .DS_Store
+
+app/src/main/resources/application.properties
