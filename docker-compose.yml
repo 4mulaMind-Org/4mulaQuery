@@ -1,0 +1,33 @@
+# @format
+
+version: "3.8"
+
+services:
+  4mulaquery-engine:
+    # Dockerfile ke basis pe build karega
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Container ka naam
+    container_name: 4mulaquery_container
+
+    # Host:Container port mapping
+    ports:
+      - "8080:8080"
+
+    # Environment variables
+    environment:
+      # Application port (change karna ho toh yahan karein)
+      - PORT=8080
+      # C++ database engine ka path inside container
+      - DATABASE_ENGINE_PATH=./core/4mulaQuery
+
+    # Persistent storage for DB file
+    volumes:
+      # ./data host folder ko /app/data container folder se link kiya
+      # Taaki container delete hone par bhi DB safe rahe
+      - ./data:/app/data
+
+    # Restart policy
+    restart: always

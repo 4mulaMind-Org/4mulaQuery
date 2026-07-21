@@ -1,0 +1,11 @@
+timestamp,type,execution_ms,success,command
+2026-04-02 02:00:15,INSERT,6,true,"insert,1,Abdul,abdul@test.com"
+2026-04-02 02:00:15,INSERT,2,true,"insert,2,Ali,ali@test.com"
+2026-04-02 02:00:15,SEARCH,2,true,"search,1"
+2026-04-02 02:00:15,DELETE,2,true,"delete,2"
+2026-04-02 02:00:15,ALL,2,true,"all"
+2026-04-02 02:05:24,INSERT,7,true,"insert,1,Abdul,abdul@test.com"
+2026-04-02 02:05:24,INSERT,1,true,"insert,2,Ali,ali@test.com"
+2026-04-02 02:05:24,SEARCH,1,true,"search,1"
+2026-04-02 02:05:24,DELETE,1,true,"delete,2"
+2026-04-02 02:05:24,ALL,2,true,"all"

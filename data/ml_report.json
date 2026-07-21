@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-05-09 22:08:41",
+  "total_queries": 10,
+  "success_rate": NaN,
+  "avg_exec_ms": 2.6,
+  "max_exec_ms": 7,
+  "anomalies_detected": 2,
+  "slow_queries": 2,
+  "health_score": 100.0,
+  "status": "EXCELLENT",
+  "anomaly_details": [
+    {
+      "type": "INSERT",
+      "exec_ms": 6,
+      "risk_score": 80.2,
+      "command": "insert,1,Abdul,abdul@test.com"
+    },
+    {
+      "type": "INSERT",
+      "exec_ms": 7,
+      "risk_score": 100.0,
+      "command": "insert,1,Abdul,abdul@test.com"
+    }
+  ]
+}

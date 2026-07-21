@@ -1,0 +1,11 @@
+# Database file — deploy pe reset hoga
+data/4mulaQuery.db
+
+# Compiled binary
+core/4mulaQuery
+
+# Java build
+app/target/
+
+# Mac files
+.DS_Store

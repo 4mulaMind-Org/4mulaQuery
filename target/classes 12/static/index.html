@@ -1,0 +1,228 @@
+<!-- @format -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>4mulaQuery | Database Engine</title>
+    <style>
+      /* CSS Section: Yahan se site ka Navy Blue, Gold aur Beige look set hota hai */
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: #f5f5dc; /* Beige background color */
+        margin: 0;
+        padding: 20px;
+        color: #001f3f; /* Navy Blue text color */
+      }
+      .container {
+        max-width: 900px;
+        margin: 40px auto;
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        border: 1px solid #d4af37; /* Golden border charo taraf */
+      }
+      .header-section {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      /* Logo ki setting: Shadow aur size yahan se manage hoga */
+      .header-logo {
+        width: 150px;
+        margin-bottom: 10px;
+        filter: drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.3));
+        border-radius: 12px;
+      }
+
+      h1 {
+        color: #001f3f;
+        font-size: 2.5em;
+        margin: 0;
+      }
+      h1 span {
+        color: #d4af37;
+      } /* 'Query' word ko golden karne ke liye */
+
+      /* Typing Animation ka style: Text ka rang aur font size */
+      #dynamic-text {
+        font-size: 1.1em;
+        color: #b29400;
+        font-weight: bold;
+        min-height: 1.5em;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .section {
+        margin-bottom: 30px;
+        padding: 25px;
+        border-radius: 12px;
+        background: #fafafa;
+        border-left: 5px solid #001f3f;
+        position: relative;
+      }
+
+      /* Tooltip Style: Jab mouse button par jayega toh choti info dikhegi */
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 180px;
+        background-color: #001f3f;
+        color: #d4af37;
+        text-align: center;
+        border-radius: 6px;
+        padding: 8px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -90px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 0.8em;
+      }
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      input {
+        padding: 12px;
+        margin: 10px 5px;
+        border: 1px solid #d4af37;
+        border-radius: 8px;
+        width: calc(30% - 12px);
+      }
+      button {
+        padding: 12px 30px;
+        background-color: #001f3f;
+        color: #d4af37;
+        border: 2px solid #d4af37;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      button:hover {
+        background-color: #d4af37;
+        color: #001f3f;
+      }
+
+      /* Results Box: Jahan database ka output dikhega (Kaala box) */
+      #results {
+        margin-top: 30px;
+        padding: 25px;
+        background: #001f3f;
+        color: #f5f5dc;
+        border-radius: 12px;
+        font-family: "Courier New", monospace;
+        min-height: 150px;
+        border-left: 5px solid #d4af37;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header-section">
+        <img src="4mulaQuery.jpg" alt="Logo" class="header-logo" />
+        <h1>4mula<span>Query</span></h1>
+        <div id="dynamic-text"></div>
+      </div>
+
+      <div class="section">
+        <h3 class="tooltip">
+          Insert Data
+          <span class="tooltiptext">B-Tree mein data save karein</span>
+        </h3>
+        <input type="number" id="id" placeholder="ID" />
+        <input type="text" id="name" placeholder="Name" />
+        <input type="email" id="email" placeholder="Email" />
+        <button onclick="insertData()">Insert</button>
+      </div>
+
+      <div class="section">
+        <h3 class="tooltip">
+          Explorer <span class="tooltiptext">Saara data dekhein</span>
+        </h3>
+        <br />
+        <button
+          onclick="fetchAll()"
+          style="background-color: #b29400; color: white; border: none"
+        >
+          View All Records
+        </button>
+      </div>
+
+      <div id="results">> 4mulaQuery Engine Ready...</div>
+    </div>
+
+    <script>
+      // --- 1. Typing Logic: Screen par text likhne aur mitane ke liye ---
+      const phrases = [
+        "Fastest C++ B-Tree Engine",
+        "Devoloped by Abdul Qadir",
+        "Beginner Friendly Dashboard",
+      ];
+      let pIdx = 0,
+        cIdx = 0,
+        isDel = false;
+
+      function type() {
+        const current = phrases[pIdx];
+        const target = document.getElementById("dynamic-text");
+
+        // Text ko ek-ek karke likhna ya mitana
+        target.textContent = isDel
+          ? current.substring(0, cIdx--)
+          : current.substring(0, cIdx++);
+
+        if (!isDel && cIdx > current.length) {
+          isDel = true;
+          setTimeout(type, 2000); // Poora likhne ke baad thoda ruko
+        } else if (isDel && cIdx === 0) {
+          isDel = false;
+          pIdx = (pIdx + 1) % phrases.length;
+          setTimeout(type, 500); // Mitane ke baad naya word shuru karo
+        } else {
+          setTimeout(type, isDel ? 50 : 100);
+        }
+      }
+      window.onload = type; // Page khulte hi typing shuru ho jaye
+
+      // --- 2. Fetch All: Java API ko call karke database read karna ---
+      function fetchAll() {
+        document.getElementById("results").innerHTML = "> Scanning Database...";
+        fetch("/api/all")
+          .then((r) => r.text())
+          .then(
+            (d) =>
+              (document.getElementById("results").innerHTML =
+                d || "No records found."),
+          );
+      }
+
+      // --- 3. Insert Data: Input box se data lekar Java ko bhejna ---
+      function insertData() {
+        const id = document.getElementById("id").value;
+        const name = document.getElementById("name").value;
+        const email = document.getElementById("email").value;
+
+        // Validation: Agar koi field khali hai toh alert do
+        if (!id || !name || !email) {
+          alert("Bhai, saari details bharo!");
+          return;
+        }
+
+        // API Call: Java ke raste C++ engine tak data bhejna
+        fetch(`/api/insert?id=${id}&name=${name}&email=${email}`)
+          .then((r) => r.text())
+          .then((d) => {
+            alert(d); // Success ya Error ka message dikhao
+            fetchAll(); // Data insert hote hi list update karo
+          });
+      }
+    </script>
+  </body>
+</html>

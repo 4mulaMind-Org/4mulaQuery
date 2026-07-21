@@ -1,0 +1,260 @@
+<!-- =====================================================
+     4mulaQuery — index.html
+     Author : Abdul Qadir
+     CSS    : style.css
+     JS     : app.js
+===================================================== -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>4mulaQuery | Intelligent Database Engine</title>
+  <link rel="icon" type="image/png" href="/Logo.jpg"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/style.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body style="visibility:hidden">
+
+<!-- Background grid -->
+<div class="grid-bg"></div>
+
+<!-- =====================================================
+     LOGIN PAGE
+===================================================== -->
+<div id="loginPage" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="/Logo.jpg" alt="4mulaQuery Logo"/>
+      <h1>4mula<span>Query</span></h1>
+      <p>// intelligent database engine</p>
+    </div>
+    <div id="loginToast" class="toast error"></div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">Sign in to access your database</div>
+    <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com"/></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div class="forgot-link"><a href="#" onclick="showPage('forgotPage')">Forgot password?</a></div>
+    <button class="btn-primary" onclick="doLogin()">Sign In →</button>
+    <div class="auth-divider">or</div>
+    <div class="auth-link">No account? <a href="#" onclick="showPage('signupPage')">Create one</a></div>
+  </div>
+</div>
+
+<!-- =====================================================
+     SIGNUP PAGE
+===================================================== -->
+<div id="signupPage" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="/Logo.jpg" alt="4mulaQuery Logo"/>
+      <h1>4mula<span>Query</span></h1>
+      <p>// intelligent database engine</p>
+    </div>
+    <div id="signupToast" class="toast"></div>
+    <div class="auth-title">Create account</div>
+    <div class="auth-sub">Join 4mulaQuery and start querying</div>
+    <div class="field"><label>Full Name</label><input type="text" id="signupName" placeholder="Your name"/></div>
+    <div class="field"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com"/></div>
+    <div class="field"><label>Password</label><input type="password" id="signupPass" placeholder="Min 6 characters"/></div>
+    <div class="field"><label>Confirm Password</label><input type="password" id="signupPass2" placeholder="Same as above" onkeydown="if(event.key==='Enter')doSignup()"/></div>
+    <button class="btn-primary" onclick="doSignup()">Create Account →</button>
+    <div class="auth-divider">or</div>
+    <div class="auth-link">Already have one? <a href="#" onclick="showPage('loginPage')">Sign in</a></div>
+  </div>
+</div>
+
+<!-- =====================================================
+     FORGOT PASSWORD PAGE
+===================================================== -->
+<div id="forgotPage" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="/Logo.jpg" alt="4mulaQuery Logo"/>
+      <h1>4mula<span>Query</span></h1>
+      <p>// intelligent database engine</p>
+    </div>
+    <div id="forgotToast" class="toast"></div>
+    <!-- Step 1: Email -->
+    <div id="fStep1">
+      <div class="auth-title">Reset password</div>
+      <div class="auth-sub">Enter your email to receive a verification code</div>
+      <div class="field"><label>Email</label><input type="email" id="forgotEmail" placeholder="you@example.com"/></div>
+      <button class="btn-primary" onclick="sendOtp()">Send Code →</button>
+    </div>
+    <!-- Step 2: OTP -->
+    <div id="fStep2" style="display:none">
+      <div class="auth-title">Enter OTP</div>
+      <div class="auth-sub">Check your email for the 4-digit code</div>
+      <div class="otp-row">
+        <input class="otp-input" maxlength="1" oninput="otpNext(this,0)">
+        <input class="otp-input" maxlength="1" oninput="otpNext(this,1)">
+        <input class="otp-input" maxlength="1" oninput="otpNext(this,2)">
+        <input class="otp-input" maxlength="1" oninput="otpNext(this,3)">
+        <input class="otp-input" maxlength="1" oninput="otpNext(this,4)">
+        <input class="otp-input" maxlength="1" oninput="otpNext(this,5)">
+      </div>
+      <button class="btn-primary" onclick="verifyOtp()">Verify →</button>
+    </div>
+    <!-- Step 3: New Password -->
+    <div id="fStep3" style="display:none">
+      <div class="auth-title">New password</div>
+      <div class="auth-sub">Set your new password</div>
+      <div class="field"><label>New Password</label><input type="password" id="newPass" placeholder="Min 6 characters"/></div>
+      <div class="field"><label>Confirm</label><input type="password" id="newPass2" placeholder="Same as above"/></div>
+      <button class="btn-primary" onclick="resetPass()">Update Password →</button>
+    </div>
+    <div class="auth-divider"></div>
+    <div class="auth-link"><a href="#" onclick="showPage('loginPage')">← Back to login</a></div>
+  </div>
+</div>
+
+<!-- =====================================================
+     MAIN APPLICATION
+===================================================== -->
+<div id="app">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <img class="topbar-logo" src="/Logo.jpg" alt="logo"/>
+      <span class="topbar-name">4mula<span>Query</span></span>
+      <span class="topbar-badge">C++ ENGINE v1.0</span>
+    </div>
+    <div class="topbar-nav">
+      <button class="tnav active" onclick="switchSec('dashboard',this)">Dashboard</button>
+      <button class="tnav" onclick="switchSec('explorer',this)">Data Explorer</button>
+      <button class="tnav" onclick="switchSec('console',this)">Console</button>
+      <button class="tnav" onclick="switchSec('settings',this)">Settings</button>
+      <button class="tnav" onclick="switchSec('analytics',this)">Analytics</button>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill">
+        <div class="user-av" id="userAv">A</div>
+        <span class="user-nm" id="userNm">User</span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">⏻ Logout</button>
+    </div>
+  </div>
+
+  <!-- Hero Header with typing animation -->
+  <div class="app-header">
+    <img src="/Logo.jpg" alt="Logo"/>
+    <h1>4mula<span>Query</span></h1>
+    <div id="dynamic-text"></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div id="sec-dashboard" class="section active">
+      <div class="page-hdr"><h2>Dashboard</h2><p>Real-time control panel for your 4mulaQuery engine</p></div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="s-label">Total Records</div><div class="s-val" id="statTotal">—</div><div class="s-desc">rows in database</div></div>
+        <div class="stat-card"><div class="s-label">Last Operation</div><div class="s-val" id="statOp" style="font-size:1rem;padding-top:8px">—</div><div class="s-desc">most recent command</div></div>
+        <div class="stat-card"><div class="s-label">Engine Status</div><div class="s-live"><span class="dot-live"></span> ONLINE</div><div class="s-desc">C++ core responding</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div class="p-dot"></div>Database Operations</div>
+        <div class="ops-grid">
+          <div class="field"><label>ID *</label><input type="number" id="opId" placeholder="e.g. 1"/></div>
+          <div class="field"><label>Username</label><input type="text" id="opName" placeholder="Name"/></div>
+          <div class="field"><label>Email</label><input type="email" id="opEmail" placeholder="user@email.com"/></div>
+          <div class="field"><label>&nbsp;</label>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ins" onclick="operate('insert')">＋</button>
+              <button class="btn btn-src" onclick="operate('search')">⌕</button>
+              <button class="btn btn-del" onclick="operate('delete')">✕</button>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ins" onclick="operate('insert')">Insert Record</button>
+          <button class="btn btn-src" onclick="operate('search')">Search by ID</button>
+          <button class="btn btn-del" onclick="operate('delete')">Delete by ID</button>
+          <button class="btn btn-ref" onclick="fetchAll()">↻ Refresh View</button>
+        </div>
+      </div>
+      <div class="out-panel">
+        <div class="out-hdr">
+          <span><span class="dot-live" style="display:inline-block;margin-right:6px"></span>engine output</span>
+          <button class="btn btn-ref" style="padding:5px 12px;font-size:0.75rem" onclick="fetchAll()">↻ Load All</button>
+        </div>
+        <div class="load-bar" id="lb1"></div>
+        <div class="out-body" id="outBody"><div class="empty"><div class="empty-icon">◈</div>Engine ready. Run a command above.</div></div>
+      </div>
+    </div>
+
+    <!-- DATA EXPLORER -->
+    <div id="sec-explorer" class="section">
+      <div class="page-hdr"><h2>Data Explorer</h2><p>Browse all records stored in 4mulaQuery database</p></div>
+      <div class="panel">
+        <div class="panel-title"><div class="p-dot"></div>All Records
+          <button class="btn btn-ref" onclick="fetchAllExplorer()" style="margin-left:auto;padding:7px 14px;font-size:0.78rem">↻ Load Data</button>
+        </div>
+        <div class="out-panel">
+          <div class="load-bar" id="lb2"></div>
+          <div class="out-body" id="explorerBody"><div class="empty"><div class="empty-icon">◈</div>Click "Load Data" to fetch all records.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSOLE -->
+    <div id="sec-console" class="section">
+      <div class="page-hdr"><h2>Query Console</h2><p>Run raw commands directly against the C++ engine</p></div>
+      <div class="console-input">
+        <span>4mula&gt;</span>
+        <input type="text" id="rawCmd" placeholder="insert,1,Name,email@test.com  |  search,1  |  delete,1  |  all" onkeydown="if(event.key==='Enter')runRaw()"/>
+        <button class="btn btn-exec" onclick="runRaw()" style="padding:8px 18px;font-size:0.82rem">▶ Run</button>
+      </div>
+      <div class="out-panel">
+        <div class="out-hdr"><span><span class="dot-live" style="display:inline-block;margin-right:6px"></span>console</span></div>
+        <div class="load-bar" id="lb3"></div>
+        <div class="out-body" id="consoleBody">
+          <div class="log"><span class="log-info">4mulaQuery Console v1.0</span><br><span class="log-time">Type a command above and press Enter</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="sec-settings" class="section">
+      <div class="page-hdr"><h2>Settings</h2><p>Manage your account preferences</p></div>
+      <div class="panel settings-card">
+        <div class="panel-title"><div class="p-dot"></div>Account</div>
+        <div class="field"><label>Display Name</label><input type="text" id="setName" placeholder="Your name"/></div>
+        <div class="field"><label>Email</label><input type="email" id="setEmail" disabled style="opacity:0.5"/></div>
+        <div class="field"><label>New Password</label><input type="password" id="setPass" placeholder="Leave blank to keep current"/></div>
+        <div class="field"><label>Confirm Password</label><input type="password" id="setPass2" placeholder="Same as above"/></div>
+        <button class="btn-primary" onclick="saveSettings()" style="max-width:200px">Save Changes</button>
+        <div id="setToast" class="toast" style="margin-top:16px;margin-bottom:0"></div>
+      </div>
+    </div>
+
+   <!-- Analytics --> 
+    <div id="sec-analytics" class="section">
+  <div class="page-hdr"><h2>Analytics</h2><p>Real-time query performance dashboard</p></div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="s-label">Total Queries</div><div class="s-val" id="an-total">—</div><div class="s-desc">this session</div></div>
+    <div class="stat-card"><div class="s-label">Avg Exec Time</div><div class="s-val" id="an-avg">—</div><div class="s-desc">milliseconds</div></div>
+    <div class="stat-card"><div class="s-label">Success Rate</div><div class="s-val" id="an-success">—</div><div class="s-desc">percent</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="panel" style="margin-bottom:0"><div class="panel-title"><div class="p-dot"></div>Query Distribution</div><canvas id="chartDist" height="220"></canvas></div>
+    <div class="panel" style="margin-bottom:0"><div class="panel-title"><div class="p-dot"></div>Avg Execution Time (ms)</div><canvas id="chartTime" height="220"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title"><div class="p-dot"></div>Timeline — Last 20 Queries
+      <button class="btn btn-ref" onclick="loadAnalytics()" style="margin-left:auto;padding:7px 14px;font-size:0.78rem">↻ Refresh</button>
+    </div>
+    <canvas id="chartTimeline" height="120"></canvas>
+  </div>
+</div>
+
+  </div><!-- end .main -->
+</div><!-- end #app -->
+
+<script src="/app.js"></script>
+</body>
+</html>
