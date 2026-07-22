@@ -10,4 +10,4 @@ app/target/
 # Mac files
 .DS_Store
 
-application-prod.properties
+application.properties
