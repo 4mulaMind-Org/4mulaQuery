@@ -247,7 +247,7 @@ async function doLogin() {
   try {
 
     // Backend login API call
-    const res = await fetch('/api/auth/v2/login', {
+    const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
 
@@ -323,7 +323,7 @@ async function doSignup() {
   try {
 
     // Backend register API
-    const res = await fetch('/api/auth/v2/register', {
+    const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
 
@@ -374,7 +374,7 @@ async function sendOtp() {
   const email = document.getElementById("forgotEmail").value.trim();
   if (!email) return showToast("forgotToast", "Enter your email");
   
-  const res = await fetch('/api/auth/v2/forgot', {
+  const res = await fetch('/api/auth/forgot', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email })
