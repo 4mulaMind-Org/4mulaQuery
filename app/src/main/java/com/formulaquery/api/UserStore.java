@@ -1,236 +1,458 @@
 package com.formulaquery.api;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.*;
 
 /**
- * ============================================================
- * UserStore — Persistent User Storage Component
- * ============================================================
+ * ============================================================================
+ *                              UserStore
+ * ============================================================================
  *
- * This component acts as a lightweight user database for the
- * 4mulaQuery application.
+ * UserStore is a lightweight file-based repository responsible for managing
+ * user accounts in the FormulaQuery application.
  *
- * Instead of using a traditional database (MySQL/PostgreSQL),
- * user records are stored in a JSON file:
+ * Features:
+ * ---------------------------------------------------------------------------
+ * • User Registration
+ * • User Login Authentication
+ * • User Search by Email
+ * • OTP Storage
+ * • OTP Verification
+ * • Password Reset
+ * • Persistent JSON Storage
+ *
+ * Data Storage:
+ * ---------------------------------------------------------------------------
+ * All user information is stored inside:
  *
  *      data/users.json
  *
- * Responsibilities:
+ * using the Jackson ObjectMapper library.
  *
- * • Persist user accounts
- * • Retrieve users by email
- * • Update user profiles
- * • Check user existence
+ * This class is registered as a Spring Component so that it can be injected
+ * into controllers and services.
  *
- * Storage Strategy:
+ * NOTE:
+ * ---------------------------------------------------------------------------
+ * Passwords are currently stored in plain text for demonstration purposes.
+ * In a production application, passwords should always be encrypted using
+ * BCryptPasswordEncoder or another secure hashing algorithm.
  *
- * The JSON file stores data in the following structure:
- *
- * {
- *   "email@example.com": {
- *       "name": "User Name",
- *       "email": "email@example.com",
- *       "password": "password"
- *   }
- * }
- *
- * Advantages of this approach:
- *
- * • Extremely lightweight
- * • No external database dependency
- * • Easy to inspect and debug
- * • Works across server restarts
- *
- * This component is registered as a Spring Bean using
- * the @Component annotation and is injected into the
- * API controller where user operations are required.
- *
- * ============================================================
+ * Author  : FormulaMind
+ * Project : FormulaQuery
+ * ============================================================================
  */
 @Component
 public class UserStore {
 
     /**
-     * File path used to persist user data.
+     * Location of the JSON file used for storing user information.
      */
-    private static final String FILE = "data/users.json";
+    private static final String FILE_PATH = "data/users.json";
 
     /**
-     * Jackson ObjectMapper used for JSON serialization
-     * and deserialization of user data.
+     * Jackson ObjectMapper used to convert Java objects
+     * to JSON and JSON back to Java objects.
      */
     private final ObjectMapper mapper = new ObjectMapper();
 
     /**
-     * Constructor responsible for initializing
-     * the persistent storage file.
+     * ========================================================================
+     *                              User Model
+     * ========================================================================
      *
-     * Startup Process:
+     * Represents a registered user.
      *
-     * 1. Ensure the data directory exists
-     * 2. Create users.json if it does not exist
-     * 3. Initialize the file with an empty JSON object
-     *
-     * This guarantees that the application always
-     * has a valid storage file available.
+     * Fields:
+     * ------------------------------------------------------------------------
+     * name       -> User's full name
+     * email      -> Unique email address
+     * password   -> Login password
+     * otp        -> Latest generated OTP
+     * otpExpiry  -> Expiration time of OTP
      */
-    public UserStore() {
-        try {
-            Path path = Paths.get(FILE);
+    public static class User {
 
-            /**
-             * Create directory structure if missing.
-             */
-            Files.createDirectories(path.getParent());
+        /** User's full name */
+        public String name;
 
-            /**
-             * Create users.json file if it does not exist.
-             */
-            if (!Files.exists(path)) {
-                Files.writeString(path, "{}");
-                System.out.println("[UserStore] Created: " + FILE);
-            }
-        } catch (IOException e) {
-            System.err.println("[UserStore] Init error: " + e.getMessage());
+        /** User's email address */
+        public String email;
+
+        /** User's password */
+        public String password;
+
+        /** One Time Password used for password reset */
+        public String otp;
+
+        /** Expiration time of OTP */
+        public String otpExpiry;
+
+        /**
+         * Default constructor.
+         *
+         * Required by Jackson during JSON deserialization.
+         */
+        public User() {
+        }
+
+        /**
+         * Parameterized constructor.
+         *
+         * @param name User name
+         * @param email User email
+         * @param password User password
+         */
+        public User(String name, String email, String password) {
+            this.name = name;
+            this.email = email;
+            this.password = password;
         }
     }
 
     /**
-     * Load all users from the JSON storage file.
+     * =========================================================================
+     * Load All Users
+     * =========================================================================
      *
-     * Returns:
-     * Map structure where:
+     * Reads every registered user from users.json.
      *
-     * key   → email
-     * value → user information map
+     * If the JSON file does not exist,
+     * an empty list is returned.
      *
-     * Example:
+     * If any IOException occurs,
+     * an empty list is returned.
      *
-     * {
-     *   "user@email.com" → {
-     *       name,
-     *       email,
-     *       password
-     *   }
-     * }
-     *
-     * If the file cannot be read, an empty map is returned
-     * to prevent application crashes.
+     * @return List<User>
      */
     @SuppressWarnings("unchecked")
-    public Map<String, Map<String, String>> loadAll() {
+    private List<User> loadUsers() {
         try {
-            return mapper.readValue(new File(FILE), HashMap.class);
+
+            File file = new File(FILE_PATH);
+
+            if (!file.exists()) {
+                return new ArrayList<>();
+            }
+
+            return mapper.readValue(
+                    file,
+                    mapper.getTypeFactory()
+                            .constructCollectionType(List.class, User.class)
+            );
+
         } catch (IOException e) {
-            System.err.println("[UserStore] Read error: " + e.getMessage());
-            return new HashMap<>();
+
+            return new ArrayList<>();
         }
     }
 
     /**
-     * Persist all users back to the JSON file.
+     * =========================================================================
+     * Save Users
+     * =========================================================================
      *
-     * This method serializes the user map and writes it
-     * to the storage file using pretty-printed formatting
-     * for easier debugging and readability.
+     * Saves the complete user list into users.json.
+     *
+     * The directory is created automatically if missing.
+     *
+     * @param users Updated list of users.
      */
-    public void saveAll(Map<String, Map<String, String>> users) {
+    private void saveUsers(List<User> users) {
+
         try {
+
+            File file = new File(FILE_PATH);
+
+            file.getParentFile().mkdirs();
+
             mapper.writerWithDefaultPrettyPrinter()
-                  .writeValue(new File(FILE), users);
+                    .writeValue(file, users);
+
         } catch (IOException e) {
-            System.err.println("[UserStore] Write error: " + e.getMessage());
+
+            System.err.println("[UserStore] Save failed : " + e.getMessage());
+
         }
     }
 
     /**
-     * Retrieve a user by email.
+     * =========================================================================
+     * Find User by Email
+     * =========================================================================
      *
-     * Parameters:
-     *      email → unique identifier for user
+     * Searches for a user using email.
      *
-     * Returns:
-     *      Map containing user data
+     * Email comparison is case-insensitive.
      *
-     * If no user is found, returns null.
+     * @param email User email.
+     * @return Optional<User>
      */
-    public Map<String, String> findByEmail(String email) {
-        return loadAll().get(email);
+    public Optional<User> findByEmail(String email) {
+
+        return loadUsers()
+
+                .stream()
+
+                .filter(user -> user.email.equalsIgnoreCase(email))
+
+                .findFirst();
     }
 
     /**
-     * Save a new user into the storage.
+     * =========================================================================
+     * Check Email Exists
+     * =========================================================================
      *
-     * Parameters:
-     *      email    → user email (primary key)
-     *      name     → user name
-     *      password → account password
+     * Determines whether a user already exists.
      *
-     * The method:
-     * 1. Loads existing users
-     * 2. Creates a new user record
-     * 3. Adds it to the user map
-     * 4. Persists the updated data
+     * @param email Email to search.
+     * @return true if email already exists.
      */
-    public void saveUser(String email, String name, String password) {
-        Map<String, Map<String, String>> users = loadAll();
+    public boolean existsByEmail(String email) {
 
-        Map<String, String> user = new HashMap<>();
-        user.put("name",     name);
-        user.put("email",    email);
-        user.put("password", password);
+        return findByEmail(email).isPresent();
 
-        users.put(email, user);
-        saveAll(users);
     }
 
     /**
-     * Update an existing user profile.
+     * =========================================================================
+     * Register User
+     * =========================================================================
      *
-     * Parameters:
-     *      email    → user identifier
-     *      name     → new name
-     *      password → optional new password
+     * Registration Process:
      *
-     * Behavior:
-     * • Updates the name
-     * • Updates password only if provided
+     * 1. Check duplicate email.
+     * 2. Load users.
+     * 3. Add new user.
+     * 4. Save updated list.
+     *
+     * @param name User name.
+     * @param email User email.
+     * @param password User password.
+     * @return true if registration succeeds.
      */
-    public void updateUser(String email, String name, String password) {
-        Map<String, Map<String, String>> users = loadAll();
+    public boolean register(String name,
+                            String email,
+                            String password) {
 
-        if (!users.containsKey(email))
-            return;
+        if (existsByEmail(email)) {
 
-        users.get(email).put("name", name);
+            return false;
 
-        if (password != null && !password.isEmpty())
-            users.get(email).put("password", password);
+        }
 
-        saveAll(users);
+        List<User> users = loadUsers();
+
+        users.add(new User(name, email, password));
+
+        saveUsers(users);
+
+        System.out.println("[UserStore] Registered : " + email);
+
+        return true;
     }
 
     /**
-     * Check if a user already exists in the storage.
+     * =========================================================================
+     * Login User
+     * =========================================================================
      *
-     * Parameters:
-     *      email → user email
+     * Authenticates user credentials.
      *
-     * Returns:
-     *      true  → user exists
-     *      false → user not found
+     * Login succeeds only if:
+     *
+     * • Email exists
+     * • Password matches
+     *
+     * @param email User email.
+     * @param password User password.
+     * @return Optional<User>
      */
-    public boolean exists(String email) {
-        return loadAll().containsKey(email);
+    public Optional<User> login(String email,
+                                String password) {
+
+        return findByEmail(email)
+
+                .filter(user -> user.password.equals(password));
+
     }
+
+    /**
+     * =========================================================================
+     * Save OTP
+     * =========================================================================
+     *
+     * Stores a generated OTP for password recovery.
+     *
+     * OTP validity:
+     *
+     *      10 Minutes
+     *
+     * @param email User email.
+     * @param otp Generated OTP.
+     */
+    public void saveOtp(String email,
+                        String otp) {
+
+        List<User> users = loadUsers();
+
+        for (User user : users) {
+
+            if (user.email.equalsIgnoreCase(email)) {
+
+                user.otp = otp;
+
+                user.otpExpiry = LocalDateTime.now()
+
+                        .plusMinutes(10)
+
+                        .toString();
+
+                break;
+            }
+        }
+
+        saveUsers(users);
+
+        System.out.println("[UserStore] OTP saved : " + email);
+
+    }
+
+    /**
+     * =========================================================================
+     * Verify OTP
+     * =========================================================================
+     *
+     * Checks:
+     *
+     * 1. User exists
+     * 2. OTP matches
+     * 3. OTP not expired
+     *
+     * @param email User email.
+     * @param otp Entered OTP.
+     * @return true if OTP is valid.
+     */
+    public boolean verifyOtp(String email,
+                             String otp) {
+
+        Optional<User> optionalUser = findByEmail(email);
+
+        if (optionalUser.isEmpty()) {
+
+            return false;
+
+        }
+
+        User user = optionalUser.get();
+
+        if (user.otp == null) {
+
+            return false;
+
+        }
+
+        if (!user.otp.equals(otp)) {
+
+            return false;
+
+        }
+
+        if (user.otpExpiry == null) {
+
+            return false;
+
+        }
+
+        LocalDateTime expiry = LocalDateTime.parse(user.otpExpiry);
+
+        return LocalDateTime.now().isBefore(expiry);
+
+    }
+
+    /**
+     * =========================================================================
+     * Reset Password
+     * =========================================================================
+     *
+     * Steps:
+     *
+     * 1. Verify OTP
+     * 2. Update password
+     * 3. Remove OTP
+     * 4. Remove expiry time
+     * 5. Save user list
+     *
+     * @param email User email.
+     * @param otp User OTP.
+     * @param newPassword New password.
+     * @return true if password updated.
+     */
+    public boolean resetPassword(String email,
+                                 String otp,
+                                 String newPassword) {
+
+        if (!verifyOtp(email, otp)) {
+
+            return false;
+
+        }
+
+        List<User> users = loadUsers();
+
+        for (User user : users) {
+
+            if (user.email.equalsIgnoreCase(email)) {
+
+                user.password = newPassword;
+
+                user.otp = null;
+
+                user.otpExpiry = null;
+
+                break;
+            }
+        }
+
+        saveUsers(users);
+
+        System.out.println("[UserStore] Password reset : " + email);
+
+        return true;
+
+    }
+
+    /**
+     * =========================================================================
+     * Constructor
+     * =========================================================================
+     *
+     * Initializes storage during application startup.
+     *
+     * If users.json does not exist:
+     *
+     * • Creates data directory.
+     * • Creates empty users.json.
+     */
+    public UserStore() {
+
+        File file = new File(FILE_PATH);
+
+        if (!file.exists()) {
+
+            file.getParentFile().mkdirs();
+
+            saveUsers(new ArrayList<>());
+
+            System.out.println("[UserStore] Created : " + FILE_PATH);
+
+        }
+    }
+
 }

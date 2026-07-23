@@ -363,34 +363,6 @@ async function doSignup() {
 }
 
 
-
-
-// ───────────── FORGOT PASSWORD FLOW ─────────────
-
-// Step 1: User email enter karta hai aur system OTP generate karta hai
-// Purana — LocalStorage check karta tha
-// Naya — Backend se:
-async function sendOtp() {
-  const email = document.getElementById("forgotEmail").value.trim();
-  if (!email) return showToast("forgotToast", "Enter your email");
-  
-  const res = await fetch('/api/auth/forgot', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-  const data = await res.json();
-  if (!data.success) return showToast("forgotToast", data.message);
-  
-  otpEmail = email;
-  showToast("forgotToast", "OTP sent to your email!", "success");
-  setTimeout(() => {
-    document.getElementById("fStep1").style.display = "none";
-    document.getElementById("fStep2").style.display = "block";
-  }, 1200);
-}
-
-
 // ───────────── OTP INPUT AUTO-FOCUS ─────────────
 
 /*
@@ -426,38 +398,30 @@ function verifyOtp() {
 
 
 // ───────────── PASSWORD RESET ─────────────
-
-function resetPass() {
-
-  // New password fields read karo
+async function resetPass() {
+  const otpInputs = document.querySelectorAll(".otp-input");
+  const otp = Array.from(otpInputs).map(i => i.value).join("");
   const p1 = document.getElementById("newPass").value;
   const p2 = document.getElementById("newPass2").value;
 
-  // Agar passwords match nahi karte
   if (!p1 || p1 !== p2)
     return showToast("forgotToast", "Passwords do not match");
 
-  // Minimum password length validation
   if (p1.length < 6)
     return showToast("forgotToast", "Min 6 characters");
 
-  // LocalStorage se users load karo
-  const users = getUsers();
+  const res = await fetch('/api/auth/reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: otpEmail, otp, password: p1 })
+  });
+  const data = await res.json();
 
-  // Password update karo (Base64 encoding use ho rahi hai)
-  users[otpEmail].password = btoa(p1);
+  if (!data.success) return showToast("forgotToast", data.message);
 
-  // Updated users data save karo
-  saveUsers(users);
-
-  // Success message show karo
   showToast("forgotToast", "Password updated! Redirecting...", "success");
-
-  // 1.5 second baad login page par redirect
   setTimeout(() => showPage("loginPage"), 1500);
 }
-
-
 
 // ───────────── LOGOUT FUNCTION ─────────────
 

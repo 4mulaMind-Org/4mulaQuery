@@ -1,180 +1,174 @@
 package com.formulaquery.api;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
 
 /**
- * ApiController
+ * ============================================================================
+ *                              ApiController
+ * ============================================================================
  *
- * Ye class 4mulaQuery ke saare REST APIs handle karti hai.
- * Frontend se jo bhi request aati hai wo yahin se backend engine tak jaati hai.
+ * ApiController is the primary REST controller of the FormulaQuery backend.
  *
- * Main responsibilities:
- * 1. Database commands ko EngineService ko forward karna
- * 2. Query analytics provide karna
- * 3. User authentication handle karna
+ * It exposes HTTP APIs for:
  *
- * Base URL: /api
+ * ---------------------------------------------------------------------------
+ * DATABASE OPERATIONS
+ * ---------------------------------------------------------------------------
+ * • Insert Record
+ * • Search Record
+ * • Delete Record
+ * • Display All Records
+ * • Retrieve Engine Logs
+ *
+ * ---------------------------------------------------------------------------
+ * USER AUTHENTICATION
+ * ---------------------------------------------------------------------------
+ * • Register
+ * • Login
+ * • Forgot Password
+ * • Reset Password
+ * • OTP Email Service
+ *
+ * The controller communicates with:
+ *
+ * • EngineService  -> Database Engine
+ * • UserStore      -> User Management
+ * • JavaMailSender -> Email Service
+ *
+ * Base URL
+ * ---------------------------------------------------------------------------
+ *      /api
+ *
+ * Example:
+ *
+ *      GET  /api/search?id=10
+ *      POST /api/auth/login
+ *
+ * Author  : FormulaMind
+ * Project : FormulaQuery
+ * ============================================================================
  */
 @RestController
 @RequestMapping("/api")
 public class ApiController {
 
-    /** Core database engine jo commands execute karta hai */
+    /**
+     * Core database engine responsible
+     * for insert, search, delete and logs.
+     */
     @Autowired
     private EngineService engineService;
 
-    /** User storage component (users.json file manage karta hai) */
+    /**
+     * File-based user repository.
+     */
     @Autowired
     private UserStore userStore;
 
-    // ───────────────── DATABASE ENDPOINTS ─────────────────
+    /**
+     * Spring Mail Sender used
+     * for sending OTP emails.
+     */
+    @Autowired
+    private JavaMailSender mailSender;
+
+    // =========================================================================
+    // DATABASE OPERATIONS
+    // =========================================================================
 
     /**
-     * Insert record into database engine
+     * Inserts a new record into the database.
+     *
+     * Endpoint:
+     *      GET /api/insert
+     *
+     * Parameters:
+     *      id
+     *      name
+     *      email
      *
      * Example:
-     * /api/insert?id=1&name=John&email=john@mail.com
+     *
+     * /api/insert?id=1&name=John&email=john@gmail.com
+     *
+     * @param id Record ID
+     * @param name Person name
+     * @param email Person email
+     * @return Success or failure message.
      */
     @GetMapping("/insert")
-    public String insertData(
-            @RequestParam int id,
-            @RequestParam String name,
-            @RequestParam String email) {
+public ResponseEntity<String> insert(
+        @RequestParam int id,
+        @RequestParam String name,
+        @RequestParam String email) {
+    String result = engineService.executeCommand("insert," + id + "," + name + "," + email);
+    return ResponseEntity.ok(result);
+}
 
-        return engineService.executeCommand(
-            String.format("insert,%d,%s,%s", id, name, email));
-    }
+@GetMapping("/search")
+public ResponseEntity<String> search(@RequestParam int id) {
+    String result = engineService.executeCommand("search," + id);
+    return ResponseEntity.ok(result);
+}
+
+@GetMapping("/delete")
+public ResponseEntity<String> delete(@RequestParam int id) {
+    String result = engineService.executeCommand("delete," + id);
+    return ResponseEntity.ok(result);
+}
+
+@GetMapping("/all")
+public ResponseEntity<String> all() {
+    String result = engineService.executeCommand("all");
+    return ResponseEntity.ok(result);
+}
+
+@GetMapping("/logs")
+public ResponseEntity<Map<String, Object>> logs() {
+    QueryLogger logger = engineService.getQueryLogger();
+    Map<String, Object> res = new HashMap<>();
+    res.put("logs", logger.getSessionLogs());
+    res.put("totalQueries", logger.getTotalLogs());
+    return ResponseEntity.ok(res);
+}
+
+    // =========================================================================
+    // USER REGISTRATION
+    // =========================================================================
 
     /**
-     * Get all records stored in engine
-     */
-    @GetMapping("/all")
-    public String getAllData() {
-        return engineService.executeCommand("all");
-    }
-
-    /**
-     * Search record by ID
-     */
-    @GetMapping("/search")
-    public String search(@RequestParam int id) {
-        return engineService.executeCommand("search," + id);
-    }
-
-    /**
-     * Delete record by ID
-     */
-    @GetMapping("/delete")
-    public String deleteData(@RequestParam int id) {
-        return engineService.executeCommand("delete," + id);
-    }
-
-    // ───────────────── ANALYTICS ENDPOINT ─────────────────
-
-    /**
-     * Query analytics return karta hai
+     * Registers a new user.
      *
-     * Response me milega:
-     * - totalQueries
-     * - successRate
-     * - avgExecTime
-     * - query type counts
-     * - recent query logs
-     */
-    @GetMapping("/logs")
-    public Map<String, Object> getLogs() {
-
-        // Engine ke query logs fetch karo
-        List<QueryLog> logs = engineService.getQueryLogger().getSessionLogs();
-
-        // Query types ka count store karne ke liye map
-        Map<String, Integer> typeCounts = new HashMap<>();
-        typeCounts.put("INSERT", 0);
-        typeCounts.put("SEARCH", 0);
-        typeCounts.put("DELETE", 0);
-        typeCounts.put("ALL", 0);
-
-        long totalTime = 0;
-        int successful = 0;
-
-        // Logs iterate karke analytics calculate karo
-        for (QueryLog log : logs) {
-            String type = log.getType().toString();
-
-            typeCounts.put(type,
-                    typeCounts.getOrDefault(type, 0) + 1);
-
-            totalTime += log.getExecutionTimeMs();
-
-            if (log.isSuccess())
-                successful++;
-        }
-
-        Map<String, Object> response = new HashMap<>();
-
-        // Total queries executed
-        response.put("totalQueries", logs.size());
-
-        // Success percentage
-        response.put("successRate",
-                logs.isEmpty() ? 0 :
-                (successful * 100.0 / logs.size()));
-
-        // Average execution time
-        response.put("avgExecTime",
-                logs.isEmpty() ? 0 :
-                (totalTime * 1.0 / logs.size()));
-
-        response.put("typeCounts", typeCounts);
-
-        // Sirf last 20 logs frontend ko bhejo
-        List<QueryLog> recent = logs.size() > 20
-                ? logs.subList(logs.size() - 20, logs.size())
-                : logs;
-
-        // Lightweight response banane ke liye mapping
-        response.put("recentLogs",
-                recent.stream().map(l -> {
-
-                    Map<String, Object> m = new HashMap<>();
-
-                    m.put("type", l.getType().toString());
-                    m.put("ms", l.getExecutionTimeMs());
-                    m.put("success", l.isSuccess());
-
-                    return m;
-
-                }).toList());
-
-        return response;
-    }
-
-    // ───────────────── AUTH ENDPOINTS ─────────────────
-
-    /**
-     * User Registration API
+     * Endpoint:
      *
-     * POST /api/auth/register
+     *      POST /api/auth/register
      *
-     * Body:
+     * Request Body:
+     *
      * {
-     *   "name": "...",
-     *   "email": "...",
-     *   "password": "..."
+     *      "name":"John",
+     *      "email":"john@gmail.com",
+     *      "password":"123456"
      * }
+     *
+     * Registration Steps:
+     *
+     * • Check duplicate email.
+     * • Store user.
+     * • Return JSON response.
+     *
+     * @param body Request body.
+     * @return Registration status.
      */
     @PostMapping("/auth/register")
-    public Map<String, Object> register(@RequestBody Map<String, String> body) {
+    public Map<String, Object> register(
+            @RequestBody Map<String, String> body) {
 
         Map<String, Object> res = new HashMap<>();
 
@@ -182,122 +176,249 @@ public class ApiController {
         String email = body.get("email");
         String password = body.get("password");
 
-        // Validate input fields
-        if (name == null || email == null || password == null) {
+        if (userStore.existsByEmail(email)) {
+
             res.put("success", false);
-            res.put("message", "All fields required");
+            res.put("message", "Email already registered!");
+
             return res;
+
         }
 
-        // Check if email already exists
-        if (userStore.exists(email)) {
-            res.put("success", false);
-            res.put("message", "Email already registered");
-            return res;
-        }
-
-        // Save new user
-        userStore.saveUser(email, name, password);
+        userStore.register(name, email, password);
 
         res.put("success", true);
-        res.put("name", name);
-        res.put("email", email);
         res.put("message", "Account created!");
 
         return res;
+
     }
 
+    // =========================================================================
+    // USER LOGIN
+    // =========================================================================
+
     /**
-     * User Login API
+     * Authenticates user credentials.
      *
-     * POST /api/auth/login
+     * Endpoint:
      *
-     * Body:
+     *      POST /api/auth/login
+     *
+     * Request Body:
+     *
      * {
-     *   "email": "...",
-     *   "password": "..."
+     *      "email":"john@gmail.com",
+     *      "password":"123456"
      * }
+     *
+     * @param body Login information.
+     * @return Login response.
      */
     @PostMapping("/auth/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> body) {
+    public Map<String, Object> login(
+            @RequestBody Map<String, String> body) {
 
         Map<String, Object> res = new HashMap<>();
 
         String email = body.get("email");
         String password = body.get("password");
 
-        if (email == null || password == null) {
+        Optional<UserStore.User> user =
+                userStore.login(email, password);
+
+        if (user.isPresent()) {
+
+            res.put("success", true);
+            res.put("name", user.get().name);
+            res.put("email", user.get().email);
+            res.put("message", "Login successful!");
+
+        } else {
+
             res.put("success", false);
-            res.put("message", "All fields required");
-            return res;
+            res.put("message", "Invalid email or password!");
+
         }
-
-        // Find user
-        Map<String, String> user = userStore.findByEmail(email);
-
-        if (user == null) {
-            res.put("success", false);
-            res.put("message", "Account not found. Sign up first.");
-            return res;
-        }
-
-        // Password check
-        if (!user.get("password").equals(password)) {
-            res.put("success", false);
-            res.put("message", "Incorrect password.");
-            return res;
-        }
-
-        res.put("success", true);
-        res.put("name", user.get("name"));
-        res.put("email", email);
 
         return res;
+
     }
+
+    // =========================================================================
+    // FORGOT PASSWORD
+    // =========================================================================
 
     /**
-     * User profile update API
+     * Generates an OTP and sends it to
+     * the user's registered email.
      *
-     * POST /api/auth/update
+     * Endpoint:
      *
-     * Body:
+     *      POST /api/auth/forgot
+     *
+     * Request Body:
+     *
      * {
-     *   "email": "...",
-     *   "name": "...",
-     *   "password": "optional"
+     *      "email":"john@gmail.com"
      * }
+     *
+     * Process:
+     *
+     * • Verify email
+     * • Generate OTP
+     * • Save OTP
+     * • Send Email
+     *
+     * @param body Email information.
+     * @return Status message.
      */
-    @PostMapping("/auth/update")
-    public Map<String, Object> update(@RequestBody Map<String, String> body) {
+    @PostMapping("/auth/forgot")
+    public Map<String, Object> forgotPassword(
+            @RequestBody Map<String, String> body) {
 
         Map<String, Object> res = new HashMap<>();
 
         String email = body.get("email");
-        String name = body.get("name");
-        String password = body.get("password");
 
-        // Validation
-        if (email == null || name == null) {
+        if (!userStore.existsByEmail(email)) {
+
             res.put("success", false);
-            res.put("message", "Name and email required");
+            res.put("message", "Email not registered!");
+
             return res;
+
         }
 
-        // User exist check
-        if (!userStore.exists(email)) {
-            res.put("success", false);
-            res.put("message", "User not found");
-            return res;
-        }
+        String otp = String.format("%06d",
+                new Random().nextInt(999999));
 
-        // Update user
-        userStore.updateUser(email, name, password);
+        userStore.saveOtp(email, otp);
+
+        sendOtpEmail(email, otp);
 
         res.put("success", true);
-        res.put("name", name);
-        res.put("email", email);
-        res.put("message", "Updated successfully!");
+        res.put("message", "OTP sent to your email!");
 
         return res;
+
     }
+
+    // =========================================================================
+    // RESET PASSWORD
+    // =========================================================================
+
+    /**
+     * Resets user password after OTP verification.
+     *
+     * Endpoint:
+     *
+     *      POST /api/auth/reset
+     *
+     * Request Body:
+     *
+     * {
+     *      "email":"john@gmail.com",
+     *      "otp":"123456",
+     *      "password":"newPassword"
+     * }
+     *
+     * @param body Reset request.
+     * @return Reset status.
+     */
+    @PostMapping("/auth/reset")
+    public Map<String, Object> resetPassword(
+            @RequestBody Map<String, String> body) {
+
+        Map<String, Object> res = new HashMap<>();
+
+        boolean ok = userStore.resetPassword(
+
+                body.get("email"),
+
+                body.get("otp"),
+
+                body.get("password")
+
+        );
+
+        res.put("success", ok);
+
+        res.put("message",
+
+                ok
+                        ? "Password reset successfully!"
+                        : "Invalid or expired OTP!");
+
+        return res;
+
+    }
+
+    // =========================================================================
+    // EMAIL SERVICE
+    // =========================================================================
+
+    /**
+     * Sends the generated OTP
+     * to the user's email address.
+     *
+     * Email contains:
+     *
+     * • OTP Code
+     * • Expiry Time
+     * • Application Name
+     *
+     * @param to Recipient email.
+     * @param otp Generated OTP.
+     */
+    private void sendOtpEmail(String to,
+                              String otp) {
+
+        try {
+
+            SimpleMailMessage message =
+                    new SimpleMailMessage();
+
+            message.setTo(to);
+
+            message.setSubject(
+                    "4mulaQuery — Password Reset OTP");
+
+            message.setText(
+
+                    "Your OTP is : " + otp +
+
+                    "\n\nThis OTP is valid for 10 minutes."
+
+                    + "\n\nDo not share this OTP with anyone."
+
+                    + "\n\nRegards,"
+
+                    + "\n4mulaQuery"
+
+                    + "\nIntelligent Database Engine"
+
+            );
+
+            mailSender.send(message);
+
+            System.out.println(
+                    "[Mail] OTP sent to : " + to);
+
+        }
+
+        catch (Exception e) {
+
+            System.err.println(
+
+                    "[Mail] Failed : "
+
+                            + e.getMessage()
+
+            );
+
+        }
+
+    }
+
 }
