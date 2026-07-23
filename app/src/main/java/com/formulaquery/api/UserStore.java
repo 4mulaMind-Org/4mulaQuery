@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -133,21 +134,15 @@ public class UserStore {
     @SuppressWarnings("unchecked")
     private List<User> loadUsers() {
         try {
-
             File file = new File(FILE_PATH);
-
-            if (!file.exists()) {
+            if (!file.exists()) return new ArrayList<>();
+            String content = new String(Files.readAllBytes(file.toPath()));
+            if (content.trim().equals("{}") || content.trim().isEmpty()) {
                 return new ArrayList<>();
             }
-
-            return mapper.readValue(
-                    file,
-                    mapper.getTypeFactory()
-                            .constructCollectionType(List.class, User.class)
-            );
-
+            return mapper.readValue(file,
+                mapper.getTypeFactory().constructCollectionType(List.class, User.class));
         } catch (IOException e) {
-
             return new ArrayList<>();
         }
     }
@@ -237,24 +232,14 @@ public class UserStore {
      * @param password User password.
      * @return true if registration succeeds.
      */
-    public boolean register(String name,
-                            String email,
-                            String password) {
-
-        if (existsByEmail(email)) {
-
-            return false;
-
-        }
-
+    public boolean register(String name, 
+            String email, 
+            String password) {
+        if (existsByEmail(email)) return false;
         List<User> users = loadUsers();
-
         users.add(new User(name, email, password));
-
         saveUsers(users);
-
         System.out.println("[UserStore] Registered : " + email);
-
         return true;
     }
 

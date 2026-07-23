@@ -1,12 +1,25 @@
-{
-  "abdul@gmail.com" : {
-    "password" : "0987654",
-    "name" : "Abdul Qadir",
-    "email" : "abdul@gmail.com"
-  },
-  "abdulqadir0210423@gmail.com" : {
-    "password" : "0987654",
-    "name" : "Abdul Qadir",
-    "email" : "abdulqadir0210423@gmail.com"
-  }
-}
+[ {
+  "name" : "Abdul Qadir",
+  "email" : "abdulqadir0210423@gmail.com",
+  "password" : "newpass123",
+  "otp" : "575534",
+  "otpExpiry" : "2026-07-23T10:05:04.940291"
+}, {
+  "name" : "ali",
+  "email" : "4mulamind@gmail.com",
+  "password" : "1234567",
+  "otp" : "664211",
+  "otpExpiry" : "2026-07-23T09:14:10.778738"
+}, {
+  "name" : "Test",
+  "email" : "test123@gmail.com",
+  "password" : "test123",
+  "otp" : null,
+  "otpExpiry" : null
+}, {
+  "name" : "Abdul",
+  "email" : "fresh@gmail.com",
+  "password" : "test123",
+  "otp" : null,
+  "otpExpiry" : null
+} ]

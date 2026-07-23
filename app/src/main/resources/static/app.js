@@ -401,6 +401,8 @@ function verifyOtp() {
 async function resetPass() {
   const otpInputs = document.querySelectorAll(".otp-input");
   const otp = Array.from(otpInputs).map(i => i.value).join("");
+  console.log("OTP:", otp);
+  console.log("Email:", otpEmail);
   const p1 = document.getElementById("newPass").value;
   const p2 = document.getElementById("newPass2").value;
 
@@ -1320,4 +1322,24 @@ async function loadAnalytics() {
     console.error('Analytics error:', e);
 
   }
+}
+
+async function sendOtp() {
+  const email = document.getElementById("forgotEmail").value.trim();
+  if (!email) return showToast("forgotToast", "Enter your email");
+  
+  const res = await fetch('/api/auth/forgot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  const data = await res.json();
+  if (!data.success) return showToast("forgotToast", data.message);
+  
+  otpEmail = email;
+  showToast("forgotToast", "OTP sent to your email!", "success");
+  setTimeout(() => {
+    document.getElementById("fStep1").style.display = "none";
+    document.getElementById("fStep2").style.display = "block";
+  }, 1200);
 }
