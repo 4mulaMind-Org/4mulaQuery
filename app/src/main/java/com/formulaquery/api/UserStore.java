@@ -110,7 +110,7 @@ public class UserStore {
             user.setOtp(otp);
 
             // Set OTP expiry time
-            user.setOtpExpiry(LocalDateTime.now().plusMinutes(10).toString());
+            user.setOtpExpiry(LocalDateTime.now().plusMinutes(30).toString());
 
             // Save updated user
             userRepository.save(user);
