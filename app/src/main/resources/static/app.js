@@ -380,17 +380,17 @@ function otpNext(el, idx) {
 // ───────────── OTP VERIFICATION ─────────────
 
 function verifyOtp() {
-
-  // Saare OTP input boxes ka value read karke ek string banate hain
   const entered = [...document.querySelectorAll(".otp-input")]
     .map((i) => i.value)
     .join("");
-
-  // Agar entered OTP generated OTP se match nahi karta
-  if (entered !== generatedOtp)
-    return showToast("forgotToast", "Invalid OTP. Try again.");
-
-  // OTP correct hai to Step2 hide aur Step3 (password reset) show
+  
+  if (entered.length < 6)
+    return showToast("forgotToast", "Enter complete OTP");
+  
+  // OTP store karo — resetPass mein use hoga
+  generatedOtp = entered;
+  
+  // Step2 hide aur Step3 show
   document.getElementById("fStep2").style.display = "none";
   document.getElementById("fStep3").style.display = "block";
 }
