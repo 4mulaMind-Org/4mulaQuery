@@ -224,14 +224,14 @@ public ResponseEntity<Map<String, Object>> logs() {
         String email = body.get("email");
         String password = body.get("password");
 
-        Optional<UserStore.User> user =
+        Optional<User> user =
                 userStore.login(email, password);
 
         if (user.isPresent()) {
 
             res.put("success", true);
-            res.put("name", user.get().name);
-            res.put("email", user.get().email);
+            res.put("name", user.get().getName());
+            res.put("email", user.get().getEmail());
             res.put("message", "Login successful!");
 
         } else {
