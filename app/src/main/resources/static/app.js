@@ -555,6 +555,10 @@ function loadApp() {
   currentUser = s;
 
   // Authentication pages hide karo
+  if (!currentUser) {
+    showPage("loginPage");
+    return;
+  }
   ["loginPage", "signupPage", "forgotPage"].forEach((p) => {
     document.getElementById(p).style.display = "none";
   });
