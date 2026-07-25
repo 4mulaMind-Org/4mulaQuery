@@ -96,6 +96,10 @@
         <input class="otp-input" maxlength="1" oninput="otpNext(this,5)">
       </div>
       <button class="btn-primary" onclick="verifyOtp()">Verify →</button>
+      <p style="text-align:center; margin-top:12px;">
+        Didn't receive? 
+        <a href="#" onclick="sendOtp()" style="color:#d4af37;">Resend OTP</a>
+      </p>
     </div>
     <!-- Step 3: New Password -->
     <div id="fStep3" style="display:none">
