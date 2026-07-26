@@ -28,7 +28,9 @@ public class ApiApplication {
      */
     @Bean
     public EngineService engineService() {
-        String binaryPath = System.getProperty("user.home") + "/Desktop/workSpace/project/4mulaQuery/core/4mulaQuery";
+        String binaryPath = System.getenv("ENGINE_PATH") != null 
+            ? System.getenv("ENGINE_PATH") 
+            : System.getProperty("user.home") + "/Desktop/workSpace/project/4mulaQuery/core/4mulaQuery";
         return new EngineService(binaryPath);
     }
 }
