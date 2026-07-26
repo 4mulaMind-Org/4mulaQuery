@@ -433,7 +433,7 @@ public ResponseEntity<Map<String, Object>> logs() {
             int imported = 0;
             int failed = 0;
             String line;
-            int id = 1;
+            int id = (int)(System.currentTimeMillis() % 100000);
             
             while ((line = reader.readLine()) != null) {
                 String[] values = line.split(",");
