@@ -191,19 +191,40 @@
       </div>
     </div>
 
-    <!-- DATA EXPLORER -->
-    <div id="sec-explorer" class="section">
-      <div class="page-hdr"><h2>Data Explorer</h2><p>Browse all records stored in 4mulaQuery database</p></div>
-      <div class="panel">
-        <div class="panel-title"><div class="p-dot"></div>All Records
-          <button class="btn btn-ref" onclick="fetchAllExplorer()" style="margin-left:auto;padding:7px 14px;font-size:0.78rem">↻ Load Data</button>
+  <!-- DATA EXPLORER -->
+  <div id="sec-explorer" class="section">
+    <div class="page-hdr"><h2>Data Explorer</h2><p>Browse all records stored in 4mulaQuery database</p></div>
+    
+    <!-- CSV Import Section -->
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-title">
+        <div class="p-dot"></div>CSV Import
+        <span style="margin-left:auto;font-size:0.78rem;color:#888;">Upload CSV to import data</span>
+      </div>
+      <div style="padding:20px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="csvFile" accept=".csv" 
+            style="background:#0f1525;border:1px solid #2a3a5c;color:#c8d8f0;padding:8px 12px;border-radius:8px;cursor:pointer;"/>
+          <button class="btn btn-ref" onclick="previewCsv()" 
+            style="padding:8px 16px;font-size:0.85rem;">👁 Preview</button>
+          <button class="btn-primary" onclick="importCsv()" 
+            style="padding:8px 16px;font-size:0.85rem;width:auto;">⬆ Import</button>
         </div>
-        <div class="out-panel">
-          <div class="load-bar" id="lb2"></div>
-          <div class="out-body" id="explorerBody"><div class="empty"><div class="empty-icon">◈</div>Click "Load Data" to fetch all records.</div></div>
-        </div>
+        <div id="csvPreview" style="margin-top:16px;overflow-x:auto;"></div>
+        <div id="csvStatus" style="margin-top:12px;color:#d4af37;font-size:0.85rem;"></div>
       </div>
     </div>
+
+    <div class="panel">
+      <div class="panel-title"><div class="p-dot"></div>All Records
+        <button class="btn btn-ref" onclick="fetchAllExplorer()" style="margin-left:auto;padding:7px 14px;font-size:0.78rem">↻ Load Data</button>
+      </div>
+      <div class="out-panel">
+        <div class="load-bar" id="lb2"></div>
+        <div class="out-body" id="explorerBody"><div class="empty"><div class="empty-icon">◈</div>Click "Load Data" to fetch all records.</div></div>
+      </div>
+    </div>
+  </div>
 
     <!-- CONSOLE -->
     <div id="sec-console" class="section">

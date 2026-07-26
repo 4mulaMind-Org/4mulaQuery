@@ -1347,3 +1347,84 @@ async function sendOtp() {
     document.getElementById("fStep2").style.display = "block";
   }, 1200);
 }
+
+// ── CSV Import Functions ──────────────────────────────────
+
+/*
+previewCsv()
+
+Purpose:
+Selected CSV file ka preview display karna.
+
+Flow:
+1. CSV file read karo
+2. Header aur first 5 rows extract karo
+3. Preview table generate karo
+4. Preview UI me display karo
+*/
+
+async function previewCsv() {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return document.getElementById("csvStatus").textContent = "Please select a CSV file!";
+
+  const text = await file.text();
+  const rows = text.trim().split("\n").slice(0, 6);
+  const headers = rows[0].split(",");
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
+  html += '<tr>' + headers.map(h =>
+    `<th style="border:1px solid #2a3a5c;padding:8px;background:#1b2a4a;color:#d4af37;">${h.trim()}</th>`
+  ).join('') + '</tr>';
+
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i].split(",");
+    html += '<tr>' + cols.map(c =>
+      `<td style="border:1px solid #2a3a5c;padding:8px;color:#c8d8f0;">${c.trim()}</td>`
+    ).join('') + '</tr>';
+  }
+
+  html += '</table>';
+
+  document.getElementById("csvPreview").innerHTML = html;
+  document.getElementById("csvStatus").textContent =
+    "Preview ready — click Import to upload!";
+}
+
+/*
+importCsv()
+
+Purpose:
+CSV file backend par upload karke database me import karna.
+
+Flow:
+1. Selected file validate karo
+2. FormData object create karo
+3. CSV backend ko upload karo
+4. JSON response receive karo
+5. Import result UI me display karo
+*/
+
+async function importCsv() {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return document.getElementById("csvStatus").textContent = "Please select a CSV file!";
+
+  document.getElementById("csvStatus").textContent = "Importing...";
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/api/import/csv", {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    document.getElementById("csvStatus").textContent =
+      `✅ ${data.message} (${data.failed} failed)`;
+  } else {
+    document.getElementById("csvStatus").textContent =
+      `❌ ${data.message}`;
+  }
+}

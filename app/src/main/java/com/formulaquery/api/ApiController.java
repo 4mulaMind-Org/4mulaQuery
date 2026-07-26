@@ -1,11 +1,16 @@
 package com.formulaquery.api;
-
+import org.springframework.web.multipart.MultipartFile;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.*;
 
 /**
@@ -352,6 +357,107 @@ public ResponseEntity<Map<String, Object>> logs() {
 
         return res;
 
+    }
+
+    // =========================================================================
+    // CSV IMPORT
+    // =========================================================================
+
+    /**
+     * Imports records from a CSV file into the database.
+     *
+     * <p><b>Endpoint:</b></p>
+     * <pre>
+     * POST /api/import/csv
+     * </pre>
+     *
+     * <p><b>Content-Type:</b></p>
+     * <pre>
+     * multipart/form-data
+     * </pre>
+     *
+     * <p><b>Request Parameter:</b></p>
+     * <ul>
+     *   <li><b>file</b> - CSV file containing user records.</li>
+     * </ul>
+     *
+     * <p><b>Expected CSV Format:</b></p>
+     * <pre>
+     * name,email
+     * John,john@gmail.com
+     * Alice,alice@gmail.com
+     * Bob,bob@gmail.com
+     * </pre>
+     *
+     * <p><b>Processing Steps:</b></p>
+     * <ol>
+     *   <li>Read the uploaded CSV file.</li>
+     *   <li>Skip the header row.</li>
+     *   <li>Extract the <b>name</b> and <b>email</b> columns.</li>
+     *   <li>Generate sequential IDs starting from 1.</li>
+     *   <li>Insert each record using the database engine.</li>
+     *   <li>Count successful and failed imports.</li>
+     *   <li>Return the import summary.</li>
+     * </ol>
+     *
+     * <p><b>Example Response:</b></p>
+     * <pre>
+     * {
+     *   "success": true,
+     *   "imported": 25,
+     *   "failed": 1,
+     *   "message": "25 rows imported!"
+     * }
+     * </pre>
+     *
+     * @param file Uploaded CSV file containing records.
+     * @return A map containing:
+     * <ul>
+     *   <li><b>success</b> - Import status.</li>
+     *   <li><b>imported</b> - Number of successfully imported records.</li>
+     *   <li><b>failed</b> - Number of failed records.</li>
+     *   <li><b>message</b> - Summary of the import operation.</li>
+     * </ul>
+     */
+
+    @PostMapping("/import/csv")
+    public Map<String, Object> importCsv(@RequestParam("file") MultipartFile file) {
+        Map<String, Object> res = new HashMap<>();
+        try {
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(file.getInputStream()));
+            
+            String headerLine = reader.readLine(); // Skip header
+            String[] headers = headerLine.split(",");
+            
+            int imported = 0;
+            int failed = 0;
+            String line;
+            int id = 1;
+            
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split(",");
+                if (values.length >= 2) {
+                    String name = values[0].trim();
+                    String email = values.length > 1 ? values[1].trim() : "";
+                    String result = engineService.executeCommand(
+                        "insert," + id + "," + name + "," + email);
+                    if (result.contains("Error")) failed++;
+                    else imported++;
+                    id++;
+                }
+            }
+            
+            res.put("success", true);
+            res.put("imported", imported);
+            res.put("failed", failed);
+            res.put("message", imported + " rows imported!");
+            
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("message", "Error: " + e.getMessage());
+        }
+        return res;
     }
 
     // =========================================================================
