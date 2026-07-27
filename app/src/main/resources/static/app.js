@@ -1428,3 +1428,101 @@ async function importCsv() {
       `❌ ${data.message}`;
   }
 }
+
+// ── Flexible CSV Import ───────────────────────────────────
+
+/*
+importFlexibleCsv()
+
+Purpose:
+Dynamic CSV file backend par upload karke MongoDB me import karna.
+
+Flow:
+1. Selected file validate karo
+2. FormData create karo
+3. CSV backend ko upload karo
+4. Import response receive karo
+5. Status display karo
+6. Imported dataset load karo
+*/
+
+async function importFlexibleCsv() {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file)
+    return document.getElementById("csvStatus").textContent =
+      "Please select a CSV file!";
+
+  document.getElementById("csvStatus").textContent = "Importing...";
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/api/import/flexible", {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    document.getElementById("csvStatus").textContent =
+      `✅ ${data.message} | Dataset: ${data.dataset} | Columns: ${data.columns}`;
+
+    // Load imported dataset
+    loadDataset(data.dataset);
+  } else {
+    document.getElementById("csvStatus").textContent =
+      `❌ ${data.message}`;
+  }
+}
+
+/*
+loadDataset(name)
+
+Purpose:
+Selected dataset ke records load karke preview table me display karna.
+
+Flow:
+1. Dataset request backend ko bhejo
+2. Dataset records receive karo
+3. Table headers generate karo
+4. First 20 rows display karo
+5. Preview section update karo
+*/
+
+async function loadDataset(name) {
+  const res = await fetch(`/api/dataset/${name}`);
+  const data = await res.json();
+
+  if (!data.records || data.records.length === 0) return;
+
+  const headers = Object.keys(data.records[0]);
+
+  let html = `<div style="margin-top:16px;overflow-x:auto;">`;
+
+  html += `<p style="color:#888;font-size:0.8rem;margin-bottom:8px;">
+      Dataset:
+      <span style="color:#d4af37">${name}</span>
+      | ${data.total} rows
+    </p>`;
+
+  html += `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">`;
+
+  html += '<tr>' +
+    headers.map(h =>
+      `<th style="border:1px solid #2a3a5c;padding:8px;background:#1b2a4a;color:#d4af37;">${h}</th>`
+    ).join('') +
+    '</tr>';
+
+  data.records.slice(0, 20).forEach(row => {
+    html += '<tr>' +
+      headers.map(h =>
+        `<td style="border:1px solid #2a3a5c;padding:8px;color:#c8d8f0;">${row[h] || ''}</td>`
+      ).join('') +
+      '</tr>';
+  });
+
+  html += `</table></div>`;
+
+  document.getElementById("csvPreview").innerHTML = html;
+}

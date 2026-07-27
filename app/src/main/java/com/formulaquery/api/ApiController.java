@@ -76,6 +76,9 @@ public class ApiController {
     @Autowired
     private UserStore userStore;
 
+    @Autowired
+    private FlexibleRecordRepository flexibleRecordRepository;
+
     /**
      * Spring Mail Sender used
      * for sending OTP emails.
@@ -437,9 +440,10 @@ public ResponseEntity<Map<String, Object>> logs() {
             
             while ((line = reader.readLine()) != null) {
                 String[] values = line.split(",");
-                if (values.length >= 2) {
+                if (values.length >= 1) {
+                    // First column = name, generate email from it
                     String name = values[0].trim();
-                    String email = values.length > 1 ? values[1].trim() : "";
+                    String email = name.toLowerCase().replaceAll("\\s+", "") + "@data.csv";
                     String result = engineService.executeCommand(
                         "insert," + id + "," + name + "," + email);
                     if (result.contains("Error")) failed++;
@@ -459,6 +463,126 @@ public ResponseEntity<Map<String, Object>> logs() {
         }
         return res;
     }
+
+    // =========================================================================
+    // FLEXIBLE DATASET IMPORT
+    // =========================================================================
+
+    /*
+    importFlexible()
+
+    Purpose:
+    CSV file ko dynamic dataset ke roop me MongoDB me import karna.
+
+    Flow:
+    1. Dataset name file name se extract karo
+    2. CSV headers read karo
+    3. Existing dataset delete karo
+    4. Dynamic fields prepare karo
+    5. Records MongoDB me save karo
+    6. Import summary return karo
+    */
+    @PostMapping("/import/flexible")
+    public Map<String, Object> importFlexible(
+            @RequestParam("file") MultipartFile file) {
+        Map<String, Object> res = new HashMap<>();
+        try {
+            String fileName = file.getOriginalFilename()
+                .replace(".csv", "");
+            
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(file.getInputStream()));
+            
+            // Headers read karo
+            String headerLine = reader.readLine();
+            String[] headers = headerLine.split(",");
+            
+            // Purana data delete karo same dataset ka
+            flexibleRecordRepository.deleteByDatasetName(fileName);
+            
+            int imported = 0;
+            String line;
+            
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split(",", -1);
+                Map<String, String> fields = new LinkedHashMap<>();
+                
+                for (int i = 0; i < headers.length; i++) {
+                    String value = i < values.length ? values[i].trim() : "";
+                    fields.put(headers[i].trim(), value);
+                }
+                
+                flexibleRecordRepository.save(
+                    new FlexibleRecord(fileName, fields));
+                imported++;
+            }
+            
+            res.put("success", true);
+            res.put("imported", imported);
+            res.put("dataset", fileName);
+            res.put("columns", headers.length);
+            res.put("message", imported + " rows imported!");
+            
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("message", "Error: " + e.getMessage());
+        }
+        return res;
+    }
+
+    // =========================================================================
+    // DATASET OPERATIONS
+    // =========================================================================
+
+    /*
+    getDatasets()
+
+    Purpose:
+    Available datasets ki list retrieve karna.
+
+    Flow:
+    1. Sabhi records fetch karo
+    2. Unique dataset names extract karo
+    3. Dataset list return karo
+    */
+    @GetMapping("/datasets")
+    public Map<String, Object> getDatasets() {
+        Map<String, Object> res = new HashMap<>();
+        // Distinct dataset names
+        List<FlexibleRecord> all = flexibleRecordRepository.findAll();
+        List<String> datasets = all.stream()
+            .map(FlexibleRecord::getDatasetName)
+            .distinct()
+            .collect(java.util.stream.Collectors.toList());
+        res.put("datasets", datasets);
+        return res;
+    }
+
+    /*
+    getDataset(name)
+
+    Purpose:
+    Selected dataset ke sabhi records retrieve karna.
+
+    Flow:
+    1. Dataset name receive karo
+    2. Matching records fetch karo
+    3. Dynamic field data extract karo
+    4. Dataset details return karo
+    */
+   @GetMapping("/dataset/{name}")
+    public Map<String, Object> getDataset(@PathVariable String name) {
+        Map<String, Object> res = new HashMap<>();
+        List<FlexibleRecord> records = 
+            flexibleRecordRepository.findByDatasetName(name);
+        res.put("dataset", name);
+        res.put("total", records.size());
+        res.put("records", records.stream()
+            .map(FlexibleRecord::getFields)
+            .collect(java.util.stream.Collectors.toList()));
+        return res;
+    }
+
 
     // =========================================================================
     // EMAIL SERVICE
