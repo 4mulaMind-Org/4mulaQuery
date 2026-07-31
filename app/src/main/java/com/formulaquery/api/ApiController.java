@@ -137,15 +137,80 @@ public ResponseEntity<String> all() {
     return ResponseEntity.ok(result);
 }
 
+// =========================================================================
+// QUERY LOGS
+// =========================================================================
+
+/*
+logs()
+
+Purpose:
+Query execution logs aur performance statistics retrieve karna.
+
+Flow:
+1. Query logger obtain karo
+2. Session logs fetch karo
+3. Total queries count karo
+4. Average execution time calculate karo
+5. Success rate calculate karo
+6. Response return karo
+*/
+
 @GetMapping("/logs")
 public ResponseEntity<Map<String, Object>> logs() {
     QueryLogger logger = engineService.getQueryLogger();
+    List<QueryLog> sessionLogs = logger.getSessionLogs();
+    
     Map<String, Object> res = new HashMap<>();
-    res.put("logs", logger.getSessionLogs());
     res.put("totalQueries", logger.getTotalLogs());
+    res.put("logs", sessionLogs);
+    
+    // Avg exec time
+    double avgTime = sessionLogs.stream()
+        .mapToLong(QueryLog::getExecutionTimeMs)
+        .average().orElse(0);
+    res.put("avgExecTime", avgTime);
+    
+    // Success rate
+    long successCount = sessionLogs.stream()
+        .filter(QueryLog::isSuccess)
+        .count();
+    double successRate = sessionLogs.isEmpty() ? 0 :
+        (successCount * 100.0) / sessionLogs.size();
+    res.put("successRate", successRate);
+    
+    // Type counts
+    Map<String, Long> typeCounts = sessionLogs.stream()
+        .collect(java.util.stream.Collectors.groupingBy(
+            log -> log.getType().toString(),
+            java.util.stream.Collectors.counting()
+        ));
+    res.put("typeCounts", typeCounts);
+    
+    // Avg time per type
+    Map<String, Double> avgTimePerType = sessionLogs.stream()
+        .collect(java.util.stream.Collectors.groupingBy(
+            log -> log.getType().toString(),
+            java.util.stream.Collectors.averagingLong(QueryLog::getExecutionTimeMs)
+        ));
+    res.put("avgTimePerType", avgTimePerType);
+
+    // Recent logs for timeline
+    List<Map<String, Object>> recentLogs = sessionLogs.stream()
+        .limit(20)
+        .map(log -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("type", log.getType().toString());
+            m.put("ms", log.getExecutionTimeMs());
+            m.put("success", log.isSuccess());
+            m.put("timestamp", log.getTimestamp());
+            return m;
+        })
+        .collect(java.util.stream.Collectors.toList());
+    res.put("recentLogs", recentLogs);
+    
     return ResponseEntity.ok(res);
 }
-
     // =========================================================================
     // USER REGISTRATION
     // =========================================================================

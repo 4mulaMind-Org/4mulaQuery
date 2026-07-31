@@ -1055,49 +1055,28 @@ async function runRaw() {
   setLoad("lb3", false);
 }
 
-/* ── INIT ── */
 
-// Page load hone par ye function run hota hai
 window.onload = () => {
-
-  // Page ko visible karna (initial flash hide karne ke liye use hota hai)
   document.body.style.visibility = "visible";
-
-  // Local storage / session se user session lena
   const s = getSession();
-
-  // Agar session mil gaya to user already logged in hai
   if (s) {
-    currentUser = s;   // current user set karo
-    loadApp();         // main app load karo
+    currentUser = s;   
+    loadApp();         
   } 
   else {
-    // Agar session nahi mila to login page show karo
     showPage("loginPage");
   }
 
-  /* ── Analytics Navigation Section ── */
-
-  // Ye function tabs switch karta hai (dashboard / explorer / analytics)
   function switchSec(name, el) {
-
-    // Saare sections se "active" class remove
     document
       .querySelectorAll(".section")
       .forEach((s) => s.classList.remove("active"));
-
-    // Saare navigation buttons se "active" remove
     document
       .querySelectorAll(".tnav")
       .forEach((n) => n.classList.remove("active"));
-
-    // Selected section ko active karo
     document.getElementById("sec-" + name).classList.add("active");
 
-    // Click kiye gaye nav button ko active karo
     el.classList.add("active");
-
-    // Agar analytics tab open hua hai to analytics data load karo
     if (name === "analytics") loadAnalytics();
   }
 };
@@ -1132,11 +1111,11 @@ async function loadAnalytics() {
 
     // Average execution time show karna
     document.getElementById('an-avg').textContent =
-      data.avgExecTime.toFixed(1) + 'ms';
+      (data.avgExecTime || 0).toFixed(1) + 'ms';
 
     // Success rate percentage show karna
     document.getElementById('an-success').textContent =
-      data.successRate.toFixed(1) + '%';
+      (data.successRate || 0).toFixed(1) + '%';
 
 
 
@@ -1201,20 +1180,7 @@ async function loadAnalytics() {
     /* ── 2️⃣ AVERAGE EXECUTION TIME CHART ── */
 
     // Har query type ka average execution time calculate
-    const avgTimes = types.map(t => {
-
-      // Same type ke logs filter
-      const matching =
-        (data.recentLogs || []).filter(l => l.type === t);
-
-      if (!matching.length) return 0;
-
-      // Average calculate
-      return (
-        matching.reduce((a, b) => a + b.ms, 0) / matching.length
-      ).toFixed(1);
-    });
-
+    const avgTimes = types.map(t => (data.avgTimePerType[t] || 0).toFixed(1));
 
     // Purana chart delete
     if (chartTime) chartTime.destroy();
@@ -1525,4 +1491,76 @@ async function loadDataset(name) {
   html += `</table></div>`;
 
   document.getElementById("csvPreview").innerHTML = html;
+}
+
+// ── Dataset Viewer Functions ───────────────────────────────
+
+/*
+loadDatasets()
+
+Purpose:
+Available datasets ki list backend se load karna.
+
+Flow:
+1. Dataset list request bhejo
+2. Response receive karo
+3. Dropdown options generate karo
+4. Dataset selector update karo
+*/
+
+async function loadDatasets() {
+  const res = await fetch("/api/datasets");
+  const data = await res.json();
+
+  const select = document.getElementById("datasetSelect");
+  select.innerHTML = '<option value="">-- Select Dataset --</option>';
+
+  data.datasets.forEach(d => {
+    select.innerHTML += `<option value="${d}">${d}</option>`;
+  });
+}
+
+/*
+loadDataset(name)
+
+Purpose:
+Selected dataset ke records table format me display karna.
+
+Flow:
+1. Dataset request backend ko bhejo
+2. Records receive karo
+3. Table headers generate karo
+4. First 50 rows display karo
+5. Dataset viewer update karo
+*/
+
+async function loadDataset(name) {
+  if (!name) return;
+
+  const res = await fetch(`/api/dataset/${name}`);
+  const data = await res.json();
+
+  if (!data.records || !data.records.length) return;
+
+  const headers = Object.keys(data.records[0]);
+
+  let html = `<p style="color:#888;font-size:0.8rem;margin-bottom:8px;">
+    ${data.total} rows | <span style="color:#d4af37">${name}</span></p>`;
+
+  html += `<div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">`;
+
+  html += '<tr>' + headers.map(h =>
+    `<th style="border:1px solid #2a3a5c;padding:8px;background:#1b2a4a;color:#d4af37;">${h}</th>`
+  ).join('') + '</tr>';
+
+  data.records.slice(0, 50).forEach(row => {
+    html += '<tr>' + headers.map(h =>
+      `<td style="border:1px solid #2a3a5c;padding:8px;color:#c8d8f0;">${row[h] || ''}</td>`
+    ).join('') + '</tr>';
+  });
+
+  html += '</table></div>';
+
+  document.getElementById("datasetViewer").innerHTML = html;
 }

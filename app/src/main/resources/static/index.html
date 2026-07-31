@@ -215,6 +215,22 @@
       </div>
     </div>
 
+    <!-- Dataset Viewer --> 
+    <div class="panel" style="margin-top:20px;">
+      <div class="panel-title">
+        <div class="p-dot"></div>Dataset Viewer
+        <button class="btn btn-ref" onclick="loadDatasets()" 
+          style="margin-left:auto;padding:7px 14px;font-size:0.78rem">↻ Load Datasets</button>
+      </div>
+      <div style="padding:20px;">
+        <select id="datasetSelect" onchange="loadDataset(this.value)"
+          style="background:#0f1525;border:1px solid #2a3a5c;color:#c8d8f0;padding:8px 12px;border-radius:8px;width:100%;margin-bottom:16px;">
+          <option value="">-- Select Dataset --</option>
+        </select>
+        <div id="datasetViewer"></div>
+      </div>
+    </div>
+
     <div class="panel">
       <div class="panel-title"><div class="p-dot"></div>All Records
         <button class="btn btn-ref" onclick="fetchAllExplorer()" style="margin-left:auto;padding:7px 14px;font-size:0.78rem">↻ Load Data</button>
