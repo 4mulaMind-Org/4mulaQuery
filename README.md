@@ -1,19 +1,14 @@
-<!-- @format -->
-
 # 4mulaQuery — Intelligent Database Engine
 
 <div align="center">
 
-![4mulaQuery Preview](assets/preview.png)
+![4mulaQuery Logo](assets/Logo.jpg)
 
-**A high-performance database engine built from scratch**  
-_C++ Storage Core • Java Spring Boot API • Docker Deployed_
+**A production-grade database engine built from scratch in C++ with B+ Tree indexing, Java Spring Boot REST API, MongoDB-backed authentication, AI-powered CSV import, real-time analytics, and live cloud deployment.**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-fourmulaquery.onrender.com-gold?style=for-the-badge)](https://fourmulaquery.onrender.com)
-[![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=java)](https://www.java.com)
-[![C++](https://img.shields.io/badge/C++-17-blue?style=for-the-badge&logo=cplusplus)](https://isocpp.org)
-[![Docker](https://img.shields.io/badge/Docker-Deployed-2496ED?style=for-the-badge&logo=docker)](https://docker.com)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-6DB33F?style=for-the-badge&logo=springboot)](https://spring.io)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-gold?style=for-the-badge)](https://fourmulaquery.onrender.com)
+[![GitHub](https://img.shields.io/badge/GitHub-4mulaMind-blue?style=for-the-badge&logo=github)](https://github.com/4mulaMind/4mulaQuery)
+[![Dev.to](https://img.shields.io/badge/Dev.to-Article-black?style=for-the-badge)](https://dev.to/qadir21)
 
 </div>
 
@@ -21,44 +16,114 @@ _C++ Storage Core • Java Spring Boot API • Docker Deployed_
 
 ## What is 4mulaQuery?
 
-4mulaQuery is a custom-built relational database engine written from scratch in **C++**, exposed via a **Java Spring Boot REST API**, and deployed using **Docker**. It implements core database concepts including binary file storage, page management, and CRUD operations — without using any existing database library.
+4mulaQuery is a fully functional relational database engine built entirely from scratch — no SQLite, no MySQL, no existing database library. It implements core database engineering concepts at the binary level while exposing a modern full-stack interface.
 
-> Built to understand how databases actually work under the hood.
+**The key differentiator:** Unlike other educational database projects, 4mulaQuery is a complete production-deployed system with AI-powered data ingestion, persistent cloud authentication, real-time analytics, and machine learning anomaly detection — all integrated into a single coherent platform.
 
 ---
 
-## Architecture 
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Browser / Client                     │
-│              fourmulaquery.onrender.com                 │
-└──────────────────────┬──────────────────────────────────┘
-                       │ HTTP
-┌──────────────────────▼──────────────────────────────────┐
-│              Java Spring Boot API Layer                 │
-│                                                         │
-│  ApiController.java   →  REST Endpoints                 │
-│  EngineService.java   →  Orchestrator                   │
-│  ProcessManager.java  →  C++ Process Lifecycle          │
-│  StreamHandler.java   →  stdin / stdout I/O             │
-│  QueryLogger.java     →  ML Data Collection             │
-│  CommandType.java     →  Command Enum                   │
-│  QueryLog.java        →  Query Data Model               │
-└──────────────────────┬──────────────────────────────────┘
-                       │ subprocess (stdin/stdout)
-┌──────────────────────▼──────────────────────────────────┐
-│              C++ Database Engine (Core)                 │
-│                                                         │
-│  main.cpp     →  Command Dispatcher                     │
-│  pager.h      →  Binary File I/O (Read/Write)           │
-│  common.h     →  Row Schema & Constants                 │
-└──────────────────────┬──────────────────────────────────┘
-                       │ binary read/write
-┌──────────────────────▼──────────────────────────────────┐
-│              4mulaQuery.db  (Binary File)               │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│              Browser / Client                        │
+│         fourmulaquery.onrender.com                   │
+└─────────────────────┬───────────────────────────────┘
+                      │ HTTP REST
+┌─────────────────────▼───────────────────────────────┐
+│           Java 17 + Spring Boot 3.2                  │
+│  ApiController  │  AuthController  │  EngineService  │
+│  UserStore      │  QueryLogger     │  StreamHandler   │
+│  FlexibleRecord │  UserRepository  │  ProcessManager  │
+└──────┬──────────────────┬──────────────────┬─────────┘
+       │ subprocess        │ MongoDB Atlas     │ JavaMail
+       │ stdin/stdout      │ (persistent)      │ (OTP)
+┌──────▼──────┐   ┌───────▼────────┐
+│ C++ Engine  │   │  MongoDB Atlas  │
+│ B+ Tree     │   │  users          │
+│ Binary I/O  │   │  flexible_records│
+│ CRUD ops    │   │  (CSV datasets) │
+└──────┬──────┘   └────────────────┘
+       │
+┌──────▼──────┐
+│ 4mulaQuery  │
+│   .db file  │
+│ (binary)    │
+└─────────────┘
 ```
+
+---
+
+## Features
+
+### Core Database Engine (C++)
+- **B+ Tree Indexing** — O(log n) insert, search, delete operations
+- **Binary File Storage** — Custom 4KB page-based disk I/O
+- **CRUD Operations** — INSERT, SEARCH, DELETE, SELECT ALL
+- **Fixed-width Schema** — id (4B) + username (32B) + email (255B) = 291 bytes/record
+- **Root Page Persistence** — B+ Tree survives process restarts
+
+### Java Spring Boot API Layer
+- **REST Endpoints** — `/api/insert`, `/api/search`, `/api/delete`, `/api/all`, `/api/logs`
+- **IPC Bridge** — Java spawns C++ as subprocess via ProcessBuilder
+- **Single Responsibility** — 8 dedicated service classes
+- **CSV Import** — Fixed schema `/api/import/csv`
+- **Flexible CSV Import** — Any schema `/api/import/flexible` → MongoDB
+- **Dataset API** — `/api/datasets`, `/api/dataset/{name}`
+
+### Authentication System (MongoDB-backed)
+- **Persistent User Storage** — MongoDB Atlas (survives server restarts)
+- **Email OTP Verification** — Gmail SMTP with 30-minute expiry
+- **Forgot Password Flow** — OTP-based password reset
+- **Resend OTP** — One-click resend support
+- **BCrypt Password Hashing** — Secure password storage
+- **JWT-style Session** — localStorage session persistence
+
+### Flexible Data Import
+- **Any CSV Format** — Auto schema detection, any number of columns
+- **MongoDB Storage** — Persistent dataset storage
+- **Dataset Viewer** — Browse imported datasets with full table view
+- **Preview Before Import** — See first 5 rows before committing
+- **200+ rows tested** — Ebola Sierra Leone dataset (7 columns)
+
+### Analytics Dashboard
+- **Real-time Charts** — Chart.js powered visualizations
+- **Query Distribution** — Bar chart by operation type
+- **Avg Execution Time** — Performance by query type
+- **Timeline** — Last 20 queries execution timeline
+- **Live Stats** — Total queries, avg exec time, success rate
+
+### ML Anomaly Detection (Python)
+- **Isolation Forest** — Unsupervised anomaly detection
+- **Risk Scoring** — 0-100 risk score per query
+- **Health Score** — Engine health gauge (0-100)
+- **4 Visualizations** — Timeline, risk scores, health gauge, type performance
+- **JSON Report** — Machine-readable ML analysis output
+- **Query Logging** — Every query logged to CSV for ML training
+
+### DevOps & Deployment
+- **Multi-stage Docker Build** — Maven + G++ build, Ubuntu runtime
+- **Static Linking** — GLIBC compatibility resolved
+- **Render.com Deployment** — GitHub-triggered auto-deploy
+- **Environment Variables** — Secure credential management
+- **MongoDB Atlas** — Free tier cloud database (Mumbai region)
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Storage Engine | C++ 17 | Binary file I/O, B+ Tree indexing |
+| API Layer | Java 17 + Spring Boot 3.2 | REST endpoints, IPC bridge |
+| Database | MongoDB Atlas | User auth, flexible datasets |
+| Build Tool | Maven | Java dependency management |
+| Frontend | HTML + CSS + JavaScript | Dashboard, auth, analytics |
+| Charts | Chart.js 4.4 | Real-time query performance |
+| Email | Spring Mail + Gmail SMTP | OTP delivery |
+| ML Analytics | Python + Scikit-learn + Pandas | Anomaly detection |
+| Containerization | Docker + Docker Compose | Multi-stage build |
+| Hosting | Render.com | Live cloud deployment |
 
 ---
 
@@ -66,208 +131,150 @@ _C++ Storage Core • Java Spring Boot API • Docker Deployed_
 
 ```
 4mulaQuery/
-│
-├── app/                          # Java Spring Boot Application
+├── app/                              # Java Spring Boot Application
 │   ├── src/main/java/com/formulaquery/api/
-│   │   ├── ApiApplication.java       # Entry point
-│   │   ├── ApiController.java        # REST API endpoints
-│   │   ├── WebController.java        # Serves frontend
-│   │   ├── EngineService.java        # Main orchestrator
-│   │   ├── ProcessManager.java       # C++ process manager
-│   │   ├── StreamHandler.java        # I/O stream handler
+│   │   ├── ApiApplication.java       # Entry point + Bean config
+│   │   ├── ApiController.java        # REST endpoints
+│   │   ├── EngineService.java        # C++ bridge orchestrator
+│   │   ├── ProcessManager.java       # C++ process lifecycle
+│   │   ├── StreamHandler.java        # stdin/stdout IPC
+│   │   ├── QueryLog.java             # Query log model
 │   │   ├── QueryLogger.java          # ML data collector
-│   │   ├── QueryLog.java             # Query data model
-│   │   └── CommandType.java          # Command type enum
-│   ├── src/main/resources/static/
-│   │   ├── index.html                # Interface of the application
-|   |   ├── style.css                 # Layout styles
-|   |   ├── app.js                    # Core frontend logic controller
-│   │   └── Logo.jpg                  # App logo
-│   └── pom.xml
-│
-├── core/                         # C++ Database Engine
-│   ├── main.cpp                      # Engine entry point
-│   ├── pager.h                       # Disk I/O handler
-│   └── common.h                      # Data structures
-│
-├── assets/                       # Repository assets
-│   └── preview.png                   # Site preview screenshot
-│
-├── data/                         # Persistent Data (Docker volume)
-│   ├── 4mulaQuery.db                 # Binary database file
-│   └── query_logs.csv                # ML training data logs
-│
-├── Dockerfile                    # Multi-stage build
-└── docker-compose.yml            # Container orchestration
+│   │   ├── CommandType.java          # Enum: INSERT/SEARCH/DELETE/ALL
+│   │   ├── User.java                 # MongoDB user entity
+│   │   ├── UserRepository.java       # MongoDB user repository
+│   │   ├── UserStore.java            # Auth service layer
+│   │   ├── FlexibleRecord.java       # MongoDB flexible data entity
+│   │   ├── FlexibleRecordRepository.java # MongoDB dataset repository
+│   │   └── WebController.java        # Static file routing
+│   └── src/main/resources/
+│       ├── static/
+│       │   ├── index.html            # Single-page application
+│       │   ├── app.js                # Frontend logic
+│       │   └── style.css             # Dark luxury theme
+│       ├── application.properties    # Local config (gitignored)
+│       └── application-prod.properties # Render config
+├── core/                             # C++ Database Engine
+│   ├── main.cpp                      # Command dispatcher
+│   ├── btree.h                       # B+ Tree implementation
+│   ├── common.h                      # Row schema + constants
+│   └── pager.h                       # Page management
+├── data/                             # Persistent Data
+│   ├── query_logs.csv                # ML training data
+│   └── users.json                    # (legacy, replaced by MongoDB)
+├── assets/                           # ML Analytics Output
+│   └── ml_analytics/
+│       ├── 1_anomaly_timeline.png
+│       ├── 2_risk_scores.png
+│       ├── 3_health_gauge.png
+│       └── 4_type_performance.png
+├── ml_anomaly.py                     # ML Anomaly Detection script
+├── analyze.py                        # Query log analytics
+├── Dockerfile                        # Multi-stage build
+├── docker-compose.yml                # Container orchestration
+└── README.md
 ```
 
 ---
 
-## Tech Stack
+## API Reference
 
-| Layer            | Technology                                  |           Purpose                          |
-| ---------------- | ------------------------------------------- | ------------------------------------------ |
-| Storage Engine   | C++ 17                                      | Binary file I/O, CRUD operations           |
-| API Layer        | Java 17 + Spring Boot 3.2                   | REST endpoints, process bridge             |
-| Build Tool       | Maven                                       | Java dependency management                 |
-| Frontend         | HTML + CSS + JavaScript                     | Database UI                                |
-| Containerization | Docker + Docker Compose                     | Deployment                                 |
-| Hosting          | Render.com                                  | Live cloud deployment                      |
-| ML Analytics     | Python + Pandas + Matplotlib + Scikit-learn | Query anomaly detection + pattern analysis |
-| ML Model         | Isolation Forest                            | Slow query detection, risk scoring         |
+### Database Operations
+```bash
+# Insert record
+GET /api/insert?id=1&name=Abdul&email=abdul@test.com
+
+# Search by ID
+GET /api/search?id=1
+
+# Delete by ID
+GET /api/delete?id=1
+
+# Get all records
+GET /api/all
+
+# Get query logs + analytics
+GET /api/logs
+```
+
+### Authentication
+```bash
+# Register
+POST /api/auth/register
+{"name": "Abdul", "email": "a@test.com", "password": "pass123"}
+
+# Login
+POST /api/auth/login
+{"email": "a@test.com", "password": "pass123"}
+
+# Forgot password (sends OTP)
+POST /api/auth/forgot
+{"email": "a@test.com"}
+
+# Reset password
+POST /api/auth/reset
+{"email": "a@test.com", "otp": "123456", "password": "newpass"}
+```
+
+### Data Import
+```bash
+# Import fixed-schema CSV (id, name, email)
+POST /api/import/csv
+Content-Type: multipart/form-data
+file: <csv-file>
+
+# Import any CSV format → MongoDB
+POST /api/import/flexible
+Content-Type: multipart/form-data
+file: <any-csv-file>
+
+# List all imported datasets
+GET /api/datasets
+
+# Get dataset records
+GET /api/dataset/{name}
+```
+
 ---
 
-## API Endpoints
-
-Base URL: `https://fourmulaquery.onrender.com`
-
-| Method | Endpoint      | Description         | Example                                          |
-| ------ | ------------- | ------------------- | ------------------------------------------------ |
-| `GET`  | `/api/insert` | Insert a new record | `/api/insert?id=1&name=John&email=john@test.com` |
-| `GET`  | `/api/all`    | Fetch all records   | `/api/all`                                       |
-| `GET`  | `/api/search` | Search by ID        | `/api/search?id=1`                               |
-| `GET`  | `/api/delete` | Delete by ID        | `/api/delete?id=1`                               |
-
-### Example Response
-
-```
-1,John,john@test.com
-2,Jane,jane@test.com
-```
-
----
-
-## Row Schema
-
-Each record stored in binary format:
-
-```
-┌──────────┬──────────────────┬───────────────────────────────────────┐
-│  id      │  username        │  email                                │
-│  4 bytes │  32 bytes        │  255 bytes                            │
-│ uint32_t │  char[32]        │  char[255]                            │
-└──────────┴──────────────────┴───────────────────────────────────────┘
-Total: 291 bytes per row
-```
-
----
-
-## Setup & Installation
+## Run Locally
 
 ### Prerequisites
+- Java 17+
+- Maven 3.9+
+- G++ (C++ 17)
+- Python 3.x (for ML analytics)
 
-- Docker & Docker Compose installed
-- Git
-
-### Run Locally
+### Setup
 
 ```bash
-# 1. Clone the repository
+# Clone repository
 git clone https://github.com/4mulaMind/4mulaQuery.git
 cd 4mulaQuery
 
-# 2. Create data directory
-mkdir -p data
+# Compile C++ engine
+g++ -O3 -std=c++17 core/main.cpp -o core/4mulaQuery
 
-# 3. Build and run with Docker
-docker-compose up --build
+# Run Java API (from root directory)
+mvn -f app/pom.xml spring-boot:run
 
-# 4. Open in browser
+# Open browser
 open http://localhost:8080
 ```
 
-### Build Without Docker
-
+### ML Analytics (Optional)
 ```bash
-# C++ Engine
-g++ -O3 -std=c++17 core/main.cpp -o core/4mulaQuery
+# Install dependencies
+pip install pandas scikit-learn matplotlib numpy
 
-# Java API
-cd app
-mvn clean package -DskipTests
-java -jar target/4mulaQuery-API.jar
+# Run anomaly detection
+source venv/bin/activate
+python3 ml_anomaly.py
 ```
 
----
-
-## OOP Design (Java Layer)
-
-The Java layer follows **Single Responsibility Principle** — each class does exactly one thing:
-
-```
-EngineService      → Orchestrates all components
-ProcessManager     → Spawns and kills C++ process
-StreamHandler      → Writes to stdin, reads from stdout
-QueryLog           → Data model for one query execution
-QueryLogger        → Saves query logs to CSV for ML
-CommandType        → Enum: INSERT | SEARCH | DELETE | ALL
-```
-
----
-
-### Login
-
-![Login](assets/login.png)
-
-### Dashboard
-
-![Dashboard](assets/dashboard.png)
-
-### Analytics
-
-![Analytics](assets/analytics-dashboard.png)
-
-## Analytics Results
-
-| Query Distribution                       | Execution Time                        |
-| ---------------------------------------- | ------------------------------------- |
-| ![](assets/analytics/1_distribution.png) | ![](assets/analytics/2_exec_time.png) |
-
-| Success Rate                        | Timeline                             |
-| ----------------------------------- | ------------------------------------ |
-| ![](assets/analytics/3_success.png) | ![](assets/analytics/4_timeline.png) |
-| 
-## ML Anomaly Detection Results
-
-| Anomaly Timeline | Risk Scores |
-|---|---|
-| ![](assets/ml_analytics/1_anomaly_timeline.png) | ![](assets/ml_analytics/2_risk_scores.png) |
-
-| Health Score | Type Performance |
-|---|---|
-| ![](assets/ml_analytics/3_health_gauge.png) | ![](assets/ml_analytics/4_type_performance.png) |
----
-
-## ML Query Optimizer (Upcoming)
-
-Every query is automatically logged to `data/query_logs.csv`:
-
-```csv
-timestamp,type,execution_ms,success,command
-2026-03-29 12:00:01,INSERT,245,true,"insert,1,John,john@test.com"
-2026-03-29 12:00:05,SEARCH,183,true,"search,1"
-2026-03-29 12:00:09,DELETE,312,true,"delete,1"
-```
-
-### Planned ML Pipeline
-
-```
-query_logs.csv
-      │
-      ▼
-Python Data Analysis    → EDA, patterns, slow query detection
-      │
-      ▼
-ML Model Training       → Random Forest / Decision Tree
-      │
-      ▼
-Query Optimizer         → Predict best execution strategy
-      │
-      ▼
-REST API Integration    → Java calls Python optimizer
-      │
-      ▼
-Dashboard Analytics     → Real-time performance graphs
+### Docker
+```bash
+docker-compose up --build
 ```
 
 ---
@@ -278,38 +285,38 @@ Dashboard Analytics     → Real-time performance graphs
 - [x] Java Spring Boot REST API
 - [x] Docker deployment
 - [x] Web UI with auth system
-- [x] Query logging for ML
+- [x] B+ Tree indexing — O(log n) operations
 - [x] OOP refactor (Single Responsibility)
 - [x] Python query analytics (analyze.py)
 - [x] Analytics Dashboard (Live charts + real-time stats)
-- [x] Backend persistent user authentication
-- [x] B+ Tree indexing — O(log n) operations
+- [x] Backend persistent user authentication (MongoDB)
+- [x] Email OTP verification + forgot password
 - [x] Python ML Anomaly Detection (Isolation Forest)
 - [x] ML Risk Scoring per query
 - [x] Engine Health Score
+- [x] Flexible CSV Import (any schema → MongoDB)
+- [x] Dataset Viewer (browse imported datasets)
+- [ ] NLP Query Interface ("Show all users from Delhi")
+- [ ] Screenshot/Image → CSV (Claude Vision API)
 - [ ] SQL Parser (Lexer + AST)
+- [ ] Multi-DB Support (PostgreSQL, Cassandra)
 - [ ] ML Query Optimizer (predict slow queries)
 - [ ] Distributed version
 
 ---
 
-## Key Concepts Implemented
+## Developer
 
-| Concept                         | Where                 |
-| ------------------------------- | --------------------- |
-| Binary File I/O                 | `pager.h`             |
-| Process Spawning (IPC)          | `ProcessManager.java` |
-| Stream Redirection              | `StreamHandler.java`  |
-| Fixed-width Record Storage      | `common.h`            |
-| REST API Design                 | `ApiController.java`  |
-| Multi-stage Docker Build        | `Dockerfile`          |
-| Single Responsibility Principle | All Java classes      |
-| Data Collection for ML          | `QueryLogger.java`    |
+**Abdul Qadir**
+B.Tech AI & ML | DPGITM Gurugram | 2023–2027
+
+- GitHub: [4mulaMind](https://github.com/4mulaMind)
+- LinkedIn: [Abdul Qadir](https://linkedin.com/in/abdul-qadir-4aa642204)
+- Dev.to: [qadir21](https://dev.to/qadir21)
+- Live: [fourmulaquery.onrender.com](https://fourmulaquery.onrender.com)
 
 ---
 
 <div align="center">
-
-**4mulaQuery** — Built from scratch to understand databases from the ground up.
-
+Built from scratch. Deployed live. Learning never stops. 🚀
 </div>
