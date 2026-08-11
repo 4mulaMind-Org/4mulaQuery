@@ -105,28 +105,36 @@ _C++ Storage Core • Java Spring Boot API • Docker Deployed_
 
 ## Tech Stack
 
-| Layer            | Technology                                  |           Purpose                          |
-| ---------------- | ------------------------------------------- | ------------------------------------------ |
-| Storage Engine   | C++ 17                                      | Binary file I/O, CRUD operations           |
-| API Layer        | Java 17 + Spring Boot 3.2                   | REST endpoints, process bridge             |
-| Build Tool       | Maven                                       | Java dependency management                 |
-| Frontend         | HTML + CSS + JavaScript                     | Database UI                                |
-| Containerization | Docker + Docker Compose                     | Deployment                                 |
-| Hosting          | Render.com                                  | Live cloud deployment                      |
-| ML Analytics     | Python + Pandas + Matplotlib + Scikit-learn | Query anomaly detection + pattern analysis |
-| ML Model         | Isolation Forest                            | Slow query detection, risk scoring         |
+| Layer            | Technology                                        |           Purpose                          |
+| ---------------- | --------------------------------------------------| ------------------------------------------ |
+| Storage Engine   | C++ 17                                            | Binary file I/O, CRUD operations           |
+| API Layer        | Java 17 + Spring Boot 3.2                         | REST endpoints, process bridge             |
+| Build Tool       | Maven                                             | Java dependency management                 |
+| Frontend         | HTML + CSS + JavaScript                           | Database UI                                |
+| Containerization | Docker + Docker Compose                           | Deployment                                 |
+| Hosting          | Render.com                                        | Live cloud deployment                      |
+| ML Analytics     | Python + Pandas + Matplotlib + Scikit-learn       | Query anomaly detection + pattern analysis |
+| ML Model         | Isolation Forest                                  | Slow query detection, risk scoring         |
+| Auth Database    | MongoDB Atlas                                     | Permanent user storage, OTP |
+| Email            | JavaMail + Gmail | OTP for password reset         |
+| ML Model         | Scikit-learn Isolation Forest | Anomaly detection |
 ---
 
 ## API Endpoints
 
 Base URL: `https://fourmulaquery.onrender.com`
 
-| Method | Endpoint      | Description         | Example                                          |
-| ------ | ------------- | ------------------- | ------------------------------------------------ |
-| `GET`  | `/api/insert` | Insert a new record | `/api/insert?id=1&name=John&email=john@test.com` |
-| `GET`  | `/api/all`    | Fetch all records   | `/api/all`                                       |
-| `GET`  | `/api/search` | Search by ID        | `/api/search?id=1`                               |
-| `GET`  | `/api/delete` | Delete by ID        | `/api/delete?id=1`                               |
+| Method | Endpoint               | Description          | Example                                          |
+| ------ | ---------------------- | -------------------- | ------------------------------------------------ |
+| GET    | `/api/insert`          | Insert a new record  | `/api/insert?id=1&name=John&email=john@test.com` |
+| GET    | `/api/all`             | Fetch all records    | `/api/all`                                       |
+| GET    | `/api/search`          | Search by ID         | `/api/search?id=1`                               |
+| GET    | `/api/delete`          | Delete by ID         | `/api/delete?id=1`                               |
+| POST   | `/api/auth/forgot`     | Send OTP             |
+| POST   | `/api/auth/reset`      | Reset password       |
+| POST   | `/api/import/flexible` | Any CSV → MongoDB    |
+| GET    | `/api/datasets`        | List datasets        |
+| GET    | `/api/dataset/{name}`  | Get dataset records  |
 
 ### Example Response
 
@@ -287,9 +295,18 @@ Dashboard Analytics     → Real-time performance graphs
 - [x] Python ML Anomaly Detection (Isolation Forest)
 - [x] ML Risk Scoring per query
 - [x] Engine Health Score
+- [x] MongoDB auth — permanent storage
+- [x] Email OTP — forgot password system  
+- [x] ML Anomaly Detection (Isolation Forest)
+- [x] Flexible CSV Import → MongoDB
+- [x] Dataset Viewer
 - [ ] SQL Parser (Lexer + AST)
 - [ ] ML Query Optimizer (predict slow queries)
 - [ ] Distributed version
+- [ ] NLP Query Interface
+- [ ] Screenshot → CSV (Vision AI)
+- [ ] Chat with your Data
+- [ ] Multi-DB Support (PostgreSQL, Cassandra)
 
 ---
 
