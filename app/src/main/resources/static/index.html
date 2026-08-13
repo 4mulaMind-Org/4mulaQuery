@@ -245,6 +245,14 @@
     <!-- CONSOLE -->
     <div id="sec-console" class="section">
       <div class="page-hdr"><h2>Query Console</h2><p>Run raw commands directly against the C++ engine</p></div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text2);margin-bottom:8px;">✨ Ask in plain English</div>
+      <div class="console-input" style="margin-bottom:14px;">
+        <span>🗣</span>
+        <input type="text" id="nlpCmd" placeholder="e.g. 'find user with id 5'" onkeydown="if(event.key==='Enter')runNLPQuery()"/>
+        <button class="btn btn-exec" onclick="runNLPQuery()" style="padding:8px 18px;font-size:0.82rem">✨ Ask</button>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text2);margin-bottom:8px;">or run raw commands directly</div>
+
       <div class="console-input">
         <span>4mula&gt;</span>
         <input type="text" id="rawCmd" placeholder="insert,1,Name,email@test.com  |  search,1  |  delete,1  |  all" onkeydown="if(event.key==='Enter')runRaw()"/>

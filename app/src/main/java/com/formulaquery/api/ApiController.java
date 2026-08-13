@@ -86,6 +86,8 @@ public class ApiController {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Autowired
+    private NLPQueryService nlpQueryService;
     // =========================================================================
     // DATABASE OPERATIONS
     // =========================================================================
@@ -135,6 +137,61 @@ public ResponseEntity<String> delete(@RequestParam int id) {
 public ResponseEntity<String> all() {
     String result = engineService.executeCommand("all");
     return ResponseEntity.ok(result);
+}
+
+// =========================================================================
+// NLP QUERY
+// =========================================================================
+
+/*
+nlpQuery(body)
+
+Purpose:
+English query ko engine command me translate karke execute karna.
+*/
+@PostMapping("/nlp-query")
+public ResponseEntity<Map<String, Object>> nlpQuery(
+        @RequestBody Map<String, String> body) {
+
+    Map<String, Object> res = new HashMap<>();
+
+    String userQuery = body.get("query");
+
+    if (userQuery == null || userQuery.trim().isEmpty()) {
+        res.put("success", false);
+        res.put("message", "query field is required");
+        return ResponseEntity.badRequest().body(res);
+    }
+
+    try {
+        NLPQueryService.NLPResult result = nlpQueryService.translate(userQuery);
+
+        if ("UNSUPPORTED".equals(result.command)) {
+            res.put("success", false);
+            res.put("supported", false);
+            res.put("message", result.reason);
+            return ResponseEntity.ok(res);
+        }
+
+        String engineOutput = engineService.executeCommand(result.engineCommand);
+
+        res.put("success", true);
+        res.put("supported", true);
+        res.put("generatedCommand", result.engineCommand);
+        res.put("result", engineOutput);
+
+        return ResponseEntity.ok(res);
+
+    } catch (IllegalArgumentException e) {
+        res.put("success", false);
+        res.put("message", e.getMessage());
+        return ResponseEntity.badRequest().body(res);
+
+    } catch (Exception e) {
+        res.put("success", false);
+        res.put("message", "NLP translation failed: " + e.getMessage());
+        return ResponseEntity.status(500).body(res);
+    }
 }
 
 // =========================================================================

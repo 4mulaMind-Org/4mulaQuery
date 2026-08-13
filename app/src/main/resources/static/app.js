@@ -1564,3 +1564,67 @@ async function loadDataset(name) {
 
   document.getElementById("datasetViewer").innerHTML = html;
 }
+
+/*
+runNLPQuery()
+
+Purpose:
+Natural language query ko backend ke NLP endpoint pe bhejna,
+jo Gemini se translate karke C++ engine se result laata hai.
+*/
+async function runNLPQuery() {
+
+  const query = document.getElementById("nlpCmd").value.trim();
+  if (!query) return;
+
+  setLoad("lb3", true);
+  const t0 = performance.now();
+
+  try {
+
+    const res = await fetch("/api/nlp-query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+
+    const data = await res.json();
+    const ms = (performance.now() - t0).toFixed(1);
+
+    if (data.supported === false) {
+      document.getElementById("consoleBody").innerHTML =
+        `<div class="log">
+        <span class="log-err">Not supported</span><br>
+        <span class="log-time">${data.message}</span>
+        </div>`;
+
+    } else if (!data.success) {
+      document.getElementById("consoleBody").innerHTML =
+        `<div class="log"><span class="log-err">${data.message}</span></div>`;
+
+    } else {
+      const genLine =
+        `<div class="log" style="margin-bottom:10px;">
+        <span class="log-info">Generated: ${data.generatedCommand}</span>
+        <span class="log-time"> · ${ms}ms</span>
+        </div>`;
+
+      const resultHtml =
+        data.result.includes(",")
+          ? renderTable(data.result)
+          : `<div class="log"><span class="log-ok">${data.result.trim()}</span></div>`;
+
+      document.getElementById("consoleBody").innerHTML = genLine + resultHtml;
+
+      fetchAll(true);
+    }
+
+    document.getElementById("nlpCmd").value = "";
+
+  } catch (e) {
+    document.getElementById("consoleBody").innerHTML =
+      `<div class="log"><span class="log-err">Error: ${e.message}</span></div>`;
+  }
+
+  setLoad("lb3", false);
+}
