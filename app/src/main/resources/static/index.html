@@ -228,6 +228,20 @@
           <option value="">-- Select Dataset --</option>
         </select>
         <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text2);margin:14px 0 8px;">Ask about this dataset</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text2);margin:14px 0 8px;">
+          💬 Chat with this dataset
+        </div>
+
+        <div id="chatBox" style="background:rgba(5,8,16,0.9);border:1px solid var(--border2);border-radius:16px;padding:16px;margin-bottom:14px;max-height:320px;overflow-y:auto;display:none;">
+          <div id="chatMessages"></div>
+        </div>
+
+        <div class="console-input" style="margin-bottom:16px;">
+          <span>💬</span>
+          <input type="text" id="chatCmd" placeholder="e.g. 'how many people work in Delhi?' or 'what about their average salary?'" onkeydown="if(event.key==='Enter')sendChatMessage()"/>
+          <button class="btn btn-exec" onclick="sendChatMessage()" style="padding:8px 18px;font-size:0.82rem">Send</button>
+          <button class="btn btn-ref" onclick="clearChat()" style="padding:8px 14px;font-size:0.78rem">Clear</button>
+        </div>
 <div class="console-input" style="margin-bottom:16px;">
   <span>Q</span>
   <input type="text" id="datasetNlpCmd" placeholder="e.g. employees older than 30 in Delhi" onkeydown="if(event.key==='Enter')runDatasetNLPQuery()"/>

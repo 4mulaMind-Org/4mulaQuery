@@ -1702,3 +1702,137 @@ async function runDatasetNLPQuery() {
       '<div class="log"><span class="log-err">Error: ' + e.message + '</span></div>';
   }
 }
+
+
+/*
+Chat with your Data — conversation state + functions.
+
+Maintains an in-memory conversation history (per dataset session) and
+renders it as chat bubbles, matching the app's Navy+Gold theme.
+*/
+
+let chatHistory = [];
+
+/*
+appendChatBubble(role, text)
+
+Purpose:
+Ek chat message ko UI mein append karna, sender ke hisaab se
+alag styling ke saath (user = right-aligned gold, assistant = left-aligned dark).
+*/
+function appendChatBubble(role, text) {
+  const box = document.getElementById("chatBox");
+  const messages = document.getElementById("chatMessages");
+
+  box.style.display = "block";
+
+  const isUser = role === "user";
+
+  const bubble = document.createElement("div");
+  bubble.style.cssText = `
+    display:flex;
+    justify-content:${isUser ? "flex-end" : "flex-start"};
+    margin-bottom:10px;
+  `;
+
+  const content = document.createElement("div");
+  content.style.cssText = `
+    max-width:75%;
+    padding:10px 14px;
+    border-radius:12px;
+    font-family:'DM Mono',monospace;
+    font-size:0.85rem;
+    line-height:1.5;
+    ${isUser
+      ? "background:linear-gradient(135deg,var(--gold),var(--gold3));color:var(--bg);"
+      : "background:var(--bg3);color:var(--text);border:1px solid var(--border2);"}
+  `;
+  content.textContent = text;
+
+  bubble.appendChild(content);
+  messages.appendChild(bubble);
+
+  // auto-scroll to latest message
+  box.scrollTop = box.scrollHeight;
+}
+
+/*
+sendChatMessage()
+
+Purpose:
+User ka message dataset ke chat endpoint pe bhejna, conversation
+history ke saath (multi-turn context ke liye), aur reply ko
+chat bubble ke roop mein show karna.
+*/
+async function sendChatMessage() {
+
+  const datasetName = document.getElementById("datasetSelect").value;
+  const input = document.getElementById("chatCmd");
+  const message = input.value.trim();
+
+  if (!datasetName) {
+    appendChatBubble("assistant", "Please select a dataset from the dropdown first.");
+    return;
+  }
+
+  if (!message) return;
+
+  // Show user's message immediately
+  appendChatBubble("user", message);
+  input.value = "";
+
+  // Show a lightweight "typing" placeholder
+  appendChatBubble("assistant", "...");
+  const messages = document.getElementById("chatMessages");
+  const typingBubble = messages.lastElementChild;
+
+  try {
+    const res = await fetch(`/api/dataset/${datasetName}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, history: chatHistory })
+    });
+
+    const data = await res.json();
+
+    // remove the "..." placeholder
+    typingBubble.remove();
+
+    if (!data.success) {
+      appendChatBubble("assistant", data.message || "Something went wrong.");
+      return;
+    }
+
+    if (data.supported === false) {
+      appendChatBubble("assistant", data.reply);
+      return;
+    }
+
+    appendChatBubble("assistant", data.reply);
+
+    // update conversation history for context in future turns
+    chatHistory.push({ role: "user", text: message });
+    chatHistory.push({ role: "assistant", text: data.reply });
+
+    // keep only last 6 turns client-side too
+    if (chatHistory.length > 6) {
+      chatHistory = chatHistory.slice(chatHistory.length - 6);
+    }
+
+  } catch (e) {
+    typingBubble.remove();
+    appendChatBubble("assistant", "Error: " + e.message);
+  }
+}
+
+/*
+clearChat()
+
+Purpose:
+Conversation history aur UI dono clear karna, naya session shuru karne ke liye.
+*/
+function clearChat() {
+  chatHistory = [];
+  document.getElementById("chatMessages").innerHTML = "";
+  document.getElementById("chatBox").style.display = "none";
+}

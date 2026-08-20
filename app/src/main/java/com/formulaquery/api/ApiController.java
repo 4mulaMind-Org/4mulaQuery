@@ -87,6 +87,12 @@ public class ApiController {
     private FlexibleNLPQueryService flexibleNLPQueryService;
 
 
+    // ============================================================================
+ 
+    @Autowired
+    private ChatDataService chatDataService;
+
+
     /**
      * Spring Mail Sender used
      * for sending OTP emails.
@@ -1139,6 +1145,111 @@ public ResponseEntity<Map<String, Object>> logs() {
 
     }
 
+    /*
+    datasetChat(name, body)
+    
+    Purpose:
+    Conversational NLP interface over a dataset. Supports filtering,
+    aggregations (count/avg/sum/min/max), and multi-turn context
+    ("what about them?").
+    
+    Flow:
+    1. Dataset ke records + schema fetch karo
+    2. Message + conversation history ChatDataService ko do
+    3. Service Gemini se interpret karta hai, Java mein REAL computation
+    karta hai (LLM kabhi number nahi banata), phir Gemini se
+    verified number ke around ek sentence phrase karvata hai
+    4. Reply + supporting data (matched records, computed value) return karo
+    
+    Endpoint:
+        POST /api/dataset/{name}/chat
+    
+    Request Body:
+    {
+        "message": "what's the average salary in sales?",
+        "history": [
+            {"role": "user", "text": "show me everyone in sales"},
+            {"role": "assistant", "text": "There are 3 records in Sales."}
+        ]
+    }
+    */
+    @PostMapping("/dataset/{name}/chat")
+    public ResponseEntity<Map<String, Object>> datasetChat(
+            @PathVariable String name,
+            @RequestBody Map<String, Object> body) {
+    
+        Map<String, Object> res = new HashMap<>();
+    
+        String message = (String) body.get("message");
+    
+        if (message == null || message.trim().isEmpty()) {
+            res.put("success", false);
+            res.put("message", "message field is required");
+            return ResponseEntity.badRequest().body(res);
+        }
+    
+        List<FlexibleRecord> records = flexibleRecordRepository.findByDatasetName(name);
+    
+        if (records.isEmpty()) {
+            res.put("success", false);
+            res.put("message", "Dataset '" + name + "' not found or has no records.");
+            return ResponseEntity.badRequest().body(res);
+        }
+    
+        List<String> schema = new ArrayList<>(records.get(0).getFields().keySet());
+    
+        List<Map<String, String>> fieldMaps = records.stream()
+                .map(FlexibleRecord::getFields)
+                .collect(java.util.stream.Collectors.toList());
+    
+        // Parse conversation history from the request body (list of {role, text})
+        List<ChatDataService.ChatTurn> history = new ArrayList<>();
+        Object rawHistory = body.get("history");
+        if (rawHistory instanceof List<?> historyList) {
+            for (Object item : historyList) {
+                if (item instanceof Map<?, ?> m) {
+                    ChatDataService.ChatTurn turn = new ChatDataService.ChatTurn();
+                    turn.role = String.valueOf(m.get("role"));
+                    turn.text = String.valueOf(m.get("text"));
+                    history.add(turn);
+                }
+            }
+        }
+    
+        // Cap history to last 6 turns to keep prompts small and fast
+        if (history.size() > 6) {
+            history = history.subList(history.size() - 6, history.size());
+        }
+    
+        try {
+            ChatDataService.ChatResponse chatResponse =
+                    chatDataService.chat(schema, history, message, fieldMaps);
+    
+            res.put("success", true);
+            res.put("supported", chatResponse.supported);
+            res.put("reply", chatResponse.reply);
+    
+            if (chatResponse.supported) {
+                res.put("command", chatResponse.command);
+                res.put("matchedCount", chatResponse.matchedCount);
+                res.put("computedValue", chatResponse.computedValue);
+                res.put("records", chatResponse.matchedRecords);
+            }
+    
+            return ResponseEntity.ok(res);
+    
+        } catch (IllegalArgumentException e) {
+            res.put("success", false);
+            res.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(res);
+    
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("message", "Chat failed: " + e.getMessage());
+            return ResponseEntity.status(500).body(res);
+        }
+    }
+    
 
     // =========================================================================
     // EMAIL SERVICE
