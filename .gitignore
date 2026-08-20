@@ -11,3 +11,4 @@ app/target/
 .DS_Store
 
 application.properties
+run.sh

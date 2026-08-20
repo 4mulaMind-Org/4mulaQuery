@@ -227,7 +227,13 @@
           style="background:#0f1525;border:1px solid #2a3a5c;color:#c8d8f0;padding:8px 12px;border-radius:8px;width:100%;margin-bottom:16px;">
           <option value="">-- Select Dataset --</option>
         </select>
-        <div id="datasetViewer"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text2);margin:14px 0 8px;">Ask about this dataset</div>
+<div class="console-input" style="margin-bottom:16px;">
+  <span>Q</span>
+  <input type="text" id="datasetNlpCmd" placeholder="e.g. employees older than 30 in Delhi" onkeydown="if(event.key==='Enter')runDatasetNLPQuery()"/>
+  <button class="btn btn-exec" onclick="runDatasetNLPQuery()" style="padding:8px 18px;font-size:0.82rem">Ask</button>
+</div>
+<div id="datasetViewer"></div>
       </div>
     </div>
 

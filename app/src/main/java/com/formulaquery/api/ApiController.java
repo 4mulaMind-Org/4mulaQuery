@@ -80,6 +80,14 @@ public class ApiController {
     private FlexibleRecordRepository flexibleRecordRepository;
 
     /**
+    * Service used to translate natural-language queries into
+    * structured filters for dynamically created datasets.
+    */
+    @Autowired
+    private FlexibleNLPQueryService flexibleNLPQueryService;
+
+
+    /**
      * Spring Mail Sender used
      * for sending OTP emails.
      */
@@ -703,6 +711,432 @@ public ResponseEntity<Map<String, Object>> logs() {
             .map(FlexibleRecord::getFields)
             .collect(java.util.stream.Collectors.toList()));
         return res;
+    }
+
+    /**
+
+    * Processes a natural-language query for a specific dataset.
+
+    *
+
+    * <p>This endpoint performs the following operations:</p>
+
+    * <ol>
+
+    *     <li>Validates the user's query.</li>
+
+    *     <li>Loads records belonging to the requested dataset.</li>
+
+    *     <li>Extracts the dataset schema dynamically from the records.</li>
+
+    *     <li>Uses Gemini through {@code FlexibleNLPQueryService} to translate
+
+    *         the natural-language query into filter conditions.</li>
+
+    *     <li>Validates and applies the generated filters.</li>
+
+    *     <li>Returns the matching records.</li>
+
+    * </ol>
+
+    *
+
+    * <p>Example request:</p>
+
+    * <pre>
+
+    * POST /dataset/employees/nlp-query
+
+    *
+
+    * {
+
+    *     "query": "show employees older than 30 in Delhi"
+
+    * }
+
+    * </pre>
+
+    *
+
+    * @param name the name of the dataset to query
+
+    * @param body request body containing the natural-language query
+
+    * @return a response containing matching records or an error message
+
+    */
+
+    @PostMapping("/dataset/{name}/nlp-query")
+
+    public ResponseEntity<Map<String, Object>> datasetNlpQuery(
+
+            @PathVariable String name,
+
+            @RequestBody Map<String, String> body) {
+
+
+
+        // Create a response map used to return JSON data to the client.
+
+        Map<String, Object> res = new HashMap<>();
+
+
+
+        // Extract the natural-language query from the request body.
+
+        String userQuery = body.get("query");
+
+
+
+        /*
+
+        * Validate that the client provided a query.
+
+        *
+
+        * A null, empty, or whitespace-only query cannot be processed.
+
+        */
+
+        if (userQuery == null || userQuery.trim().isEmpty()) {
+
+
+
+            res.put("success", false);
+
+            res.put("message", "query field is required");
+
+
+
+            // Return HTTP 400 Bad Request.
+
+            return ResponseEntity.badRequest().body(res);
+
+        }
+
+
+
+        /*
+
+        * Retrieve all records belonging to the requested dataset.
+
+        *
+
+        * The dataset name comes from the URL path variable.
+
+        */
+
+        List<FlexibleRecord> records =
+
+                flexibleRecordRepository.findByDatasetName(name);
+
+
+
+        /*
+
+        * Stop processing if the dataset does not exist or contains no records.
+
+        *
+
+        * At least one record is required because the schema is extracted
+
+        * dynamically from the first record.
+
+        */
+
+        if (records.isEmpty()) {
+
+
+
+            res.put("success", false);
+
+            res.put(
+
+                    "message",
+
+                    "Dataset '" + name + "' not found or has no records."
+
+            );
+
+
+
+            // Return HTTP 400 Bad Request.
+
+            return ResponseEntity.badRequest().body(res);
+
+        }
+
+
+
+        /*
+
+        * Dynamically extract the dataset schema.
+
+        *
+
+        * The column names are taken from the field keys of the first record.
+
+        *
+
+        * Example:
+
+        * {
+
+        *     "name": "Abdul",
+
+        *     "age": "22",
+
+        *     "city": "Delhi"
+
+        * }
+
+        *
+
+        * Schema becomes:
+
+        * ["name", "age", "city"]
+
+        */
+
+        List<String> schema =
+
+                new ArrayList<>(records.get(0).getFields().keySet());
+
+
+
+        /*
+
+        * Convert FlexibleRecord objects into simple maps containing
+
+        * the actual field values.
+
+        *
+
+        * This format is required by FlexibleNLPQueryService.applyFilter().
+
+        */
+
+        List<Map<String, String>> fieldMaps = records.stream()
+
+                .map(FlexibleRecord::getFields)
+
+                .collect(java.util.stream.Collectors.toList());
+
+
+
+        try {
+
+
+
+            /*
+
+            * Send the user's natural-language query and the actual dataset
+
+            * schema to the NLP service.
+
+            *
+
+            * The service uses Gemini to translate a query such as:
+
+            *
+
+            * "show employees older than 30 in Delhi"
+
+            *
+
+            * into structured conditions such as:
+
+            *
+
+            * {
+
+            *     command: "FILTER",
+
+            *     logic: "AND",
+
+            *     conditions: [
+
+            *         {field: "age", op: ">", value: "30"},
+
+            *         {field: "city", op: "=", value: "Delhi"}
+
+            *     ]
+
+            * }
+
+            */
+
+            FlexibleNLPQueryService.FlexibleNLPResult result =
+
+                    flexibleNLPQueryService.translate(schema, userQuery);
+
+
+
+            /*
+
+            * Handle requests that cannot currently be expressed using
+
+            * the available dataset columns and supported operators.
+
+            *
+
+            * Example:
+
+            * "sort employees by salary"
+
+            *
+
+            * Filtering may be supported, but sorting is not supported
+
+            * by the current NLP filter implementation.
+
+            */
+
+            if ("UNSUPPORTED".equals(result.command)) {
+
+
+
+                res.put("success", false);
+
+                res.put("supported", false);
+
+                res.put("message", result.reason);
+
+
+
+                // Return HTTP 200 because the request was processed successfully,
+
+                // but the requested operation itself is unsupported.
+
+                return ResponseEntity.ok(res);
+
+            }
+
+
+
+            /*
+
+            * Apply the validated filter conditions to the dataset records.
+
+            *
+
+            * If the command is ALL, all records are returned.
+
+            * If the command is FILTER, only matching records are returned.
+
+            */
+
+            List<Map<String, String>> matched =
+
+                    flexibleNLPQueryService.applyFilter(result, fieldMaps);
+
+
+
+            /*
+
+            * Build a successful response containing:
+
+            * - command generated by the NLP service
+
+            * - filter conditions
+
+            * - total number of matching records
+
+            * - matching records themselves
+
+            */
+
+            res.put("success", true);
+
+            res.put("supported", true);
+
+            res.put("command", result.command);
+
+            res.put("conditions", result.conditions);
+
+            res.put("total", matched.size());
+
+            res.put("records", matched);
+
+
+
+            // Return the successful result with HTTP 200 OK.
+
+            return ResponseEntity.ok(res);
+
+
+
+        } catch (IllegalArgumentException e) {
+
+
+
+            /*
+
+            * This exception is typically thrown when the AI-generated
+
+            * filter result fails validation.
+
+            *
+
+            * Examples:
+
+            * - Unknown dataset column.
+
+            * - Unsupported operator.
+
+            * - Invalid command.
+
+            * - FILTER command without conditions.
+
+            */
+
+            res.put("success", false);
+
+            res.put("message", e.getMessage());
+
+
+
+            return ResponseEntity.badRequest().body(res);
+
+
+
+        } catch (Exception e) {
+
+
+
+            /*
+
+            * Handle unexpected errors, such as:
+
+            * - Gemini API failures.
+
+            * - Network errors.
+
+            * - Invalid JSON returned by the AI model.
+
+            * - Other NLP translation failures.
+
+            */
+
+            res.put("success", false);
+
+            res.put(
+
+                    "message",
+
+                    "NLP translation failed: " + e.getMessage()
+
+            );
+
+
+
+            // Return HTTP 500 Internal Server Error.
+
+            return ResponseEntity.status(500).body(res);
+
+        }
+
     }
 
 
