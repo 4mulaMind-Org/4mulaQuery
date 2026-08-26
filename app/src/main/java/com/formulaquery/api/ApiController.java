@@ -92,6 +92,9 @@ public class ApiController {
     @Autowired
     private ChatDataService chatDataService;
 
+    @Autowired private ScreenshotToCsvService screenshotToCsvService;
+
+
 
     /**
      * Spring Mail Sender used
@@ -599,6 +602,101 @@ public ResponseEntity<Map<String, Object>> logs() {
         }
         return res;
     }
+    // ============================================================================
+    // SCREENSHOT → CSV IMPORT (Vision AI)
+    // ============================================================================
+    
+    /*
+    importScreenshot(file, datasetName)
+    
+    Purpose:
+    Screenshot/image se tabular data extract karke MongoDB me
+    flexible dataset ke roop me import karna, using Gemini Vision.
+    
+    Flow:
+    1. Image bytes read karo
+    2. ScreenshotToCsvService se Gemini ko bhejo, structured rows wapas aate hain
+    3. Agar koi table nahi mila, error return karo
+    4. Dataset name file name se (ya user-given name se) banao
+    5. Purana dataset (same name) delete karo agar hai
+    6. Rows ko FlexibleRecord ke roop me save karo
+    7. Extracted data + import summary return karo (preview ke liye)
+    
+    Endpoint:
+        POST /api/import/screenshot
+    
+    Request:
+        multipart/form-data
+        file          -> image file (png/jpg/jpeg)
+        datasetName   -> optional, defaults to filename without extension
+    */
+    @PostMapping("/import/screenshot")
+    public Map<String, Object> importScreenshot(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "datasetName", required = false) String datasetName) {
+    
+        Map<String, Object> res = new HashMap<>();
+    
+        try {
+            String mimeType = file.getContentType();
+            if (mimeType == null || !mimeType.startsWith("image/")) {
+                res.put("success", false);
+                res.put("message", "Please upload an image file (PNG or JPEG).");
+                return res;
+            }
+    
+            byte[] imageBytes = file.getBytes();
+    
+            ScreenshotToCsvService.ExtractionResult extraction =
+                    screenshotToCsvService.extract(imageBytes, mimeType);
+    
+            if (!extraction.tableFound || extraction.rows.isEmpty()) {
+                res.put("success", true);
+                res.put("dataset", null);
+                res.put("imported", 0);
+                res.put("type", extraction.type);
+                res.put("description", extraction.description);
+                res.put("message", extraction.description != null && !extraction.description.isEmpty()
+                        ? extraction.description
+                        : "No structured data could be detected in this image.");
+                return res;
+            }
+    
+            String fileName = datasetName != null && !datasetName.trim().isEmpty()
+                    ? datasetName.trim()
+                    : file.getOriginalFilename() == null
+                        ? "screenshot_import"
+                        : file.getOriginalFilename().replaceAll("\\.[a-zA-Z0-9]+$", "");
+    
+            // Purana dataset (same name) delete karo, jaise CSV import karta hai
+            flexibleRecordRepository.deleteByDatasetName(fileName);
+    
+            int imported = 0;
+            for (Map<String, String> row : extraction.rows) {
+                flexibleRecordRepository.save(new FlexibleRecord(fileName, row));
+                imported++;
+            }
+    
+            res.put("success", true);
+            res.put("dataset", fileName);
+            res.put("imported", imported);
+            res.put("columns", extraction.headers.size());
+            res.put("headers", extraction.headers);
+            res.put("type", extraction.type);
+            res.put("description", extraction.description);
+            res.put("preview", extraction.rows.size() > 20
+                    ? extraction.rows.subList(0, 20)
+                    : extraction.rows);
+            res.put("message", imported + " rows extracted (detected: " + extraction.type + ") and imported!");
+    
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("message", "Extraction failed: " + e.getMessage());
+        }
+    
+        return res;
+    }
+    
 
     // =========================================================================
     // FLEXIBLE DATASET IMPORT

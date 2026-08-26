@@ -1836,3 +1836,105 @@ function clearChat() {
   document.getElementById("chatMessages").innerHTML = "";
   document.getElementById("chatBox").style.display = "none";
 }
+
+/*
+importScreenshot()
+
+Purpose:
+Selected image ko backend ke Vision AI endpoint pe bhejna,
+jo tabular/text/object data extract karke MongoDB me dataset
+ke roop me import karta hai. Description + extracted data
+dono UI me dikhata hai.
+
+Flow:
+1. Selected file validate karo
+2. FormData create karo
+3. Backend /api/import/screenshot pe upload karo
+4. Response me description + type + preview data receive karo
+5. Description ek highlighted box me dikhao (ChatGPT-jaisa summary)
+6. Extracted rows ko table me render karo
+7. Agar dataset banega, Dataset Viewer ke dropdown ko refresh karo
+*/
+async function importScreenshot() {
+
+  const file = document.getElementById("screenshotFile").files[0];
+
+  if (!file) {
+    document.getElementById("screenshotStatus").textContent =
+      "Please select an image first!";
+    return;
+  }
+
+  document.getElementById("screenshotStatus").textContent = "Analyzing image with Gemini Vision...";
+  document.getElementById("screenshotDescription").innerHTML = "";
+  document.getElementById("screenshotPreview").innerHTML = "";
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+
+    const res = await fetch("/api/import/screenshot", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      document.getElementById("screenshotStatus").textContent = `❌ ${data.message}`;
+      return;
+    }
+
+    // Description — shown like a ChatGPT-style summary of the image
+    if (data.description) {
+      document.getElementById("screenshotDescription").innerHTML =
+        `<div style="background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);
+          border-radius:10px;padding:12px 16px;color:#e8dcc0;font-size:0.9rem;line-height:1.5;">
+          ${data.description}
+        </div>`;
+    }
+
+    // No structured data — just show the description/message, nothing else
+    if (!data.imported || data.imported === 0) {
+      document.getElementById("screenshotStatus").textContent =
+        `Detected: ${data.type || "OTHER"} — no structured table to import.`;
+      return;
+    }
+
+    document.getElementById("screenshotStatus").textContent =
+      `✅ ${data.message} | Dataset: ${data.dataset}`;
+
+    // Render extracted rows as a preview table
+    const headers = data.headers || (data.preview[0] ? Object.keys(data.preview[0]) : []);
+
+    let html = `<p style="color:#888;font-size:0.8rem;margin-bottom:8px;">
+      Detected type: <span style="color:#d4af37">${data.type}</span>
+      | Dataset: <span style="color:#d4af37">${data.dataset}</span>
+      | ${data.imported} rows
+    </p>`;
+
+    html += `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">`;
+    html += '<tr>' + headers.map(h =>
+      `<th style="border:1px solid #2a3a5c;padding:8px;background:#1b2a4a;color:#d4af37;">${h}</th>`
+    ).join('') + '</tr>';
+
+    data.preview.forEach(row => {
+      html += '<tr>' + headers.map(h =>
+        `<td style="border:1px solid #2a3a5c;padding:8px;color:#c8d8f0;">${row[h] || ''}</td>`
+      ).join('') + '</tr>';
+    });
+
+    html += `</table>`;
+
+    document.getElementById("screenshotPreview").innerHTML = html;
+
+    // Refresh the Dataset Viewer dropdown so the new dataset shows up immediately
+    if (typeof loadDatasets === "function") {
+      loadDatasets();
+    }
+
+  } catch (e) {
+    document.getElementById("screenshotStatus").textContent = `❌ Error: ${e.message}`;
+  }
+}

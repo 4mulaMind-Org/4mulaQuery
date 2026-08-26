@@ -214,6 +214,24 @@
         <div id="csvStatus" style="margin-top:12px;color:#d4af37;font-size:0.85rem;"></div>
       </div>
     </div>
+    
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-title">
+        <div class="p-dot"></div>Screenshot Import
+        <span style="margin-left:auto;font-size:0.78rem;color:#888;">Upload any image — table, text, or a photo of objects</span>
+      </div>
+      <div style="padding:20px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="screenshotFile" accept="image/*"
+            style="background:#0f1525;border:1px solid #2a3a5c;color:#c8d8f0;padding:8px 12px;border-radius:8px;cursor:pointer;"/>
+          <button class="btn-primary" onclick="importScreenshot()"
+            style="padding:8px 16px;font-size:0.85rem;width:auto;">✨ Extract &amp; Import</button>
+        </div>
+        <div id="screenshotStatus" style="margin-top:12px;color:#d4af37;font-size:0.85rem;"></div>
+        <div id="screenshotDescription" style="margin-top:10px;"></div>
+        <div id="screenshotPreview" style="margin-top:16px;overflow-x:auto;"></div>
+      </div>
+    </div>
 
     <!-- Dataset Viewer --> 
     <div class="panel" style="margin-top:20px;">
