@@ -25,7 +25,10 @@ import java.util.regex.Pattern;
 public class NLPQueryService {
 
     // Gemini API key loaded from application.properties.
-    @Value("${gemini.api.key}")
+    @Value("${nlp.server.url:http://localhost:5001}")
+    private String nlpServerUrl;
+
+    @Value("${gemini.api.key:}")
     private String apiKey;
 
     // Gemini model used for natural-language query translation.
@@ -104,110 +107,56 @@ public class NLPQueryService {
      * parses the response, validates it, and builds the
      * corresponding C++ engine command.
      */
+    /**
+     * Calls the 4mulaMind-LLM Flask server to translate the user's
+     * natural-language query into the fixed-schema database command.
+     */
     public NLPResult translate(String userQuery) throws Exception {
 
-        // Build the JSON request expected by Gemini.
-        String requestBody = mapper.writeValueAsString(new Object() {
+        // Build the JSON request for the Flask NLP server.
+        java.util.Map<String, String> payload = new java.util.HashMap<>();
+        payload.put("query", userQuery);
+        String requestBody = mapper.writeValueAsString(payload);
 
-            // Send database rules and allowed commands to Gemini.
-            public final Object systemInstruction = new Object() {
-                public final Object[] parts = { new Object() {
-                    public final String text = SYSTEM_PROMPT;
-                }};
-            };
-
-            // Send the user's natural-language query.
-            public final Object[] contents = { new Object() {
-                public final Object[] parts = { new Object() {
-                    public final String text = userQuery;
-                }};
-            }};
-
-            // Request JSON output from Gemini.
-            public final Object generationConfig = new Object() {
-                public final String responseMimeType = "application/json";
-            };
-        });
-
-        // Build the Gemini API URL using the model and API key.
-        String url = String.format(
-                GEMINI_API_URL_TEMPLATE,
-                MODEL,
-                apiKey
-        );
+        // Build the Flask API URL.
+        String url = nlpServerUrl + "/translate";
 
         // Create the HTTP POST request.
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
-        // Send the request and receive Gemini's response.
+        // Send the request to the Flask server.
         HttpResponse<String> response = httpClient.send(
                 request,
                 HttpResponse.BodyHandlers.ofString()
         );
 
-        // Reject unsuccessful Gemini API responses.
+        // Reject unsuccessful responses.
         if (response.statusCode() != 200) {
             throw new RuntimeException(
-                    "Gemini API error: "
+                    "4mulaMind NLP server error: "
                             + response.statusCode()
                             + " "
                             + response.body()
             );
         }
 
-        // Parse Gemini's response JSON.
-        JsonNode root = mapper.readTree(response.body());
+        // Parse the Flask server's JSON response directly.
+        JsonNode parsed = mapper.readTree(response.body());
 
-        // Gemini returns generated content inside the candidates array.
-        JsonNode candidates = root.path("candidates");
-
-        // Make sure Gemini returned at least one result.
-        if (!candidates.isArray() || candidates.isEmpty()) {
-            throw new RuntimeException(
-                    "Gemini returned no candidates. Full response: "
-                            + response.body()
-            );
-        }
-
-        // Extract the generated JSON text.
-        String rawText = candidates.get(0)
-                .path("content")
-                .path("parts")
-                .get(0)
-                .path("text")
-                .asText();
-
-        // Remove code fences if Gemini unexpectedly adds them.
-        String cleanJson = stripCodeFences(rawText);
-
-        // Parse the generated JSON.
-        JsonNode parsed = mapper.readTree(cleanJson);
-
-        // Convert Gemini's response into an NLPResult object.
+        // Convert into NLPResult.
         NLPResult result = new NLPResult();
-
         result.command = parsed.path("command").asText();
-        result.id = parsed.hasNonNull("id")
-                ? parsed.get("id").asInt()
-                : null;
+        result.id = parsed.hasNonNull("id") ? parsed.get("id").asInt() : null;
+        result.username = parsed.hasNonNull("username") ? parsed.get("username").asText() : null;
+        result.email = parsed.hasNonNull("email") ? parsed.get("email").asText() : null;
+        result.reason = parsed.hasNonNull("reason") ? parsed.get("reason").asText() : null;
 
-        result.username = parsed.hasNonNull("username")
-                ? parsed.get("username").asText()
-                : null;
-
-        result.email = parsed.hasNonNull("email")
-                ? parsed.get("email").asText()
-                : null;
-
-        result.reason = parsed.hasNonNull("reason")
-                ? parsed.get("reason").asText()
-                : null;
-
-        // Validate the response before sending it to the C++ engine.
+        // Validate and build the engine command.
         validateAndBuildEngineCommand(result);
 
         return result;
