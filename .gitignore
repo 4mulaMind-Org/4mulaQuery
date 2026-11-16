@@ -1,14 +1,25 @@
-# Database file — deploy pe reset hoga
-data/4mulaQuery.db
+# IDE
+.idea/
+.vscode/
+*.iml
 
-# Compiled binary
-core/4mulaQuery
-
-# Java build
+# Compiled
+*.class
+target/
 app/target/
 
-# Mac files
+# Database
+*.db
+*.db-journal
+
+# Binaries
+4mulaQuery
+
+# Logs
+*.log
+
+# OS
 .DS_Store
 
-application.properties
-run.sh
+# Env
+.env
