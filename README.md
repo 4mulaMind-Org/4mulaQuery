@@ -10,10 +10,10 @@
 _C++ Storage Core • Java Spring Boot API • Docker Deployed_
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-fourmulaquery.onrender.com-gold?style=for-the-badge)](https://fourmulaquery.onrender.com)
-[![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=java)](https://www.java.com)
+[![Java](https://img.shields.io/badge/Java-25-orange?style=for-the-badge&logo=java)](https://www.java.com)
 [![C++](https://img.shields.io/badge/C++-17-blue?style=for-the-badge&logo=cplusplus)](https://isocpp.org)
 [![Docker](https://img.shields.io/badge/Docker-Deployed-2496ED?style=for-the-badge&logo=docker)](https://docker.com)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-6DB33F?style=for-the-badge&logo=springboot)](https://spring.io)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-6DB33F?style=for-the-badge&logo=springboot)](https://spring.io)
 
 </div>
 
@@ -108,7 +108,7 @@ _C++ Storage Core • Java Spring Boot API • Docker Deployed_
 | Layer            | Technology                                        |           Purpose                          |
 | ---------------- | --------------------------------------------------| ------------------------------------------ |
 | Storage Engine   | C++ 17                                            | Binary file I/O, CRUD operations           |
-| API Layer        | Java 17 + Spring Boot 3.2                         | REST endpoints, process bridge             |
+| API Layer        | Java 25 + Spring Boot 3.5                         | REST endpoints, process bridge             |
 | Build Tool       | Maven                                             | Java dependency management                 |
 | Frontend         | HTML + CSS + JavaScript                           | Database UI                                |
 | Containerization | Docker + Docker Compose                           | Deployment                                 |

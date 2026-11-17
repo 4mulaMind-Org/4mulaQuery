@@ -6,7 +6,7 @@
 # - C++ database engine compile karna (G++)
 # =============================================================
 
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.15-eclipse-temurin-25 AS build
 
 # Container ke andar working directory
 WORKDIR /workspace
@@ -47,7 +47,7 @@ RUN g++ -O3 -std=c++17 -static-libgcc -static-libstdc++ core/*.cpp -o core/4mula
 # - Java runtime + compiled C++ engine
 # =============================================================
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:25-jre
 
 # Application directory
 WORKDIR /app

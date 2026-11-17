@@ -51,22 +51,8 @@ public class FlexibleNLPQueryService {
      * gemini.api.key=YOUR_API_KEY
      * }</pre>
      */
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    /**
-     * Gemini model used for natural-language-to-filter translation.
-     */
-    private static final String MODEL = "gemini-3.5-flash-lite";
-
-    /**
-     * Template used to construct the Gemini generateContent API URL.
-     *
-     * <p>The first placeholder represents the model name and the second
-     * placeholder represents the API key.</p>
-     */
-    private static final String GEMINI_API_URL_TEMPLATE =
-            "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s";
+    private static final String OLLAMA_URL = "http://localhost:11434/api/chat";
+    private static final String OLLAMA_MODEL = "llama3";
 
     /**
      * HTTP client used to communicate with the Gemini API.
@@ -190,166 +176,62 @@ public class FlexibleNLPQueryService {
             String userQuery
     ) throws Exception {
 
-        // Build instructions that tell Gemini exactly which dataset columns exist.
+        // Build instructions that tell Ollama exactly which dataset columns exist.
         String systemPrompt = buildSystemPrompt(datasetSchema);
 
-        /*
-         * Create the JSON request body expected by the Gemini generateContent API.
-         *
-         * systemInstruction contains rules for translating the query.
-         * contents contains the actual query submitted by the user.
-         * generationConfig requests JSON output instead of normal text.
-         */
-        String requestBody = mapper.writeValueAsString(new Object() {
+        // Prepare the chat messages for Ollama
+        Map<String, String> sysMsg = new HashMap<>();
+        sysMsg.put("role", "system");
+        sysMsg.put("content", systemPrompt);
 
-            /**
-             * System-level instructions given to the AI model.
-             */
-            public final Object systemInstruction = new Object() {
-                public final Object[] parts = {new Object() {
-                    public final String text = systemPrompt;
-                }};
-            };
+        Map<String, String> userMsg = new HashMap<>();
+        userMsg.put("role", "user");
+        userMsg.put("content", userQuery);
 
-            /**
-             * User-provided natural-language query.
-             */
-            public final Object[] contents = {new Object() {
-                public final Object[] parts = {new Object() {
-                    public final String text = userQuery;
-                }};
-            }};
+        // Build the JSON body for Ollama
+        Map<String, Object> body = new HashMap<>();
+        body.put("model", OLLAMA_MODEL);
+        body.put("messages", List.of(sysMsg, userMsg));
+        body.put("stream", false);
+        body.put("format", "json"); // Force JSON output
 
-            /**
-             * Instruct Gemini to return the response as JSON.
-             */
-            public final Object generationConfig = new Object() {
-                public final String responseMimeType = "application/json";
-            };
-        });
+        String requestBody = mapper.writeValueAsString(body);
 
-        // Insert the selected model name and API key into the API URL.
-        String url = String.format(GEMINI_API_URL_TEMPLATE, MODEL, apiKey);
-
-        /*
-         * Build the HTTP POST request.
-         *
-         * The request body contains the system instructions and the user's query.
-         */
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
+                .uri(URI.create(OLLAMA_URL))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
-        // Send the request synchronously and receive the response as a String.
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString()
-                );
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        /*
-         * Stop processing if Gemini returns an unsuccessful HTTP status.
-         * The response body is included to help diagnose API errors.
-         */
         if (response.statusCode() != 200) {
-            throw new RuntimeException(
-                    "Gemini API error: "
-                            + response.statusCode()
-                            + " "
-                            + response.body()
-            );
+            throw new RuntimeException("Ollama API error: " + response.statusCode() + " " + response.body());
         }
 
-        // Parse the complete JSON response returned by Gemini.
+        // Parse Ollama's response
         JsonNode root = mapper.readTree(response.body());
+        String rawText = root.path("message").path("content").asText();
 
-        // Extract the candidates array containing the generated response.
-        JsonNode candidates = root.path("candidates");
-
-        // Ensure that Gemini actually returned at least one candidate.
-        if (!candidates.isArray() || candidates.isEmpty()) {
-            throw new RuntimeException(
-                    "Gemini returned no candidates. Full response: "
-                            + response.body()
-            );
-        }
-
-        /*
-         * Extract the generated text from the first candidate.
-         *
-         * Expected Gemini response structure:
-         * candidates[0].content.parts[0].text
-         */
-        String rawText = candidates.get(0)
-                .path("content")
-                .path("parts")
-                .get(0)
-                .path("text")
-                .asText();
-
-        // Remove Markdown code fences if the model included them.
         String cleanJson = stripCodeFences(rawText);
-
-        // Parse the cleaned JSON generated by the model.
         JsonNode parsed = mapper.readTree(cleanJson);
 
-        // Create the structured result object.
         FlexibleNLPResult result = new FlexibleNLPResult();
-
-        // Read the generated command.
         result.command = parsed.path("command").asText();
+        result.logic = parsed.hasNonNull("logic") ? parsed.get("logic").asText() : "AND";
+        result.reason = parsed.hasNonNull("reason") ? parsed.get("reason").asText() : null;
 
-        /*
-         * Use AND as the default logic if Gemini does not explicitly
-         * provide a logic field.
-         */
-        result.logic = parsed.hasNonNull("logic")
-                ? parsed.get("logic").asText()
-                : "AND";
-
-        // Read the unsupported reason when it is available.
-        result.reason = parsed.hasNonNull("reason")
-                ? parsed.get("reason").asText()
-                : null;
-
-        /*
-         * Convert every JSON condition returned by Gemini into a
-         * Condition Java object.
-         */
         if (parsed.has("conditions") && parsed.get("conditions").isArray()) {
-
             for (JsonNode c : parsed.get("conditions")) {
-
                 Condition cond = new Condition();
-
-                // Extract the dataset column name.
                 cond.field = c.path("field").asText();
-
-                // Extract the comparison operator.
                 cond.op = c.path("op").asText();
-
-                // Extract the expected comparison value.
                 cond.value = c.path("value").asText();
-
-                // Add the condition to the final result.
                 result.conditions.add(cond);
             }
         }
 
-        /*
-         * Validate the AI-generated result before it is used.
-         *
-         * This ensures that:
-         * - The command is known.
-         * - FILTER has at least one condition.
-         * - Every field exists in the actual dataset.
-         * - Every operator is supported.
-         */
         validate(result, datasetSchema);
-
-        // Return the validated structured filter result.
         return result;
     }
 

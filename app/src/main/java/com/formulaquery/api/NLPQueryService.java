@@ -112,16 +112,11 @@ public class NLPQueryService {
      * natural-language query into the fixed-schema database command.
      */
     public NLPResult translate(String userQuery) throws Exception {
-
-        // Build the JSON request for the Flask NLP server.
         java.util.Map<String, String> payload = new java.util.HashMap<>();
         payload.put("query", userQuery);
         String requestBody = mapper.writeValueAsString(payload);
-
-        // Build the Flask API URL.
         String url = nlpServerUrl + "/translate";
 
-        // Create the HTTP POST request.
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
@@ -129,26 +124,14 @@ public class NLPQueryService {
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
-        // Send the request to the Flask server.
-        HttpResponse<String> response = httpClient.send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-        );
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        // Reject unsuccessful responses.
         if (response.statusCode() != 200) {
-            throw new RuntimeException(
-                    "4mulaMind NLP server error: "
-                            + response.statusCode()
-                            + " "
-                            + response.body()
-            );
+            throw new RuntimeException("4mulaMind NLP server error: " + response.statusCode() + " " + response.body());
         }
 
-        // Parse the Flask server's JSON response directly.
         JsonNode parsed = mapper.readTree(response.body());
 
-        // Convert into NLPResult.
         NLPResult result = new NLPResult();
         result.command = parsed.path("command").asText();
         result.id = parsed.hasNonNull("id") ? parsed.get("id").asInt() : null;
@@ -156,9 +139,7 @@ public class NLPQueryService {
         result.email = parsed.hasNonNull("email") ? parsed.get("email").asText() : null;
         result.reason = parsed.hasNonNull("reason") ? parsed.get("reason").asText() : null;
 
-        // Validate and build the engine command.
         validateAndBuildEngineCommand(result);
-
         return result;
     }
 

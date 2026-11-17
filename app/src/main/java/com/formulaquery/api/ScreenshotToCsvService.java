@@ -17,12 +17,7 @@ import java.util.regex.Pattern;
 @Service
 public class ScreenshotToCsvService {
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    private static final String MODEL = "gemini-3.5-flash-lite";
-    private static final String GEMINI_API_URL_TEMPLATE =
-            "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s";
+    private static final String OLLAMA_URL = "http://localhost:11434/api/generate";
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
@@ -82,32 +77,17 @@ public class ScreenshotToCsvService {
     }
 
     public ExtractionResult extract(byte[] imageBytes, String mimeType) throws Exception {
-
         String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
-        Map<String, Object> imagePart = new LinkedHashMap<>();
-        imagePart.put("inlineData", Map.of(
-                "mimeType", mimeType,
-                "data", base64Image
-        ));
-
-        Map<String, Object> textPart = Map.of("text", "Extract structured data from this image.");
-
-        Map<String, Object> userContent = new LinkedHashMap<>();
-        userContent.put("role", "user");
-        userContent.put("parts", List.of(textPart, imagePart));
-
-        Map<String, Object> sysInstr = new LinkedHashMap<>();
-        sysInstr.put("parts", List.of(Map.of("text", SYSTEM_PROMPT)));
-
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("systemInstruction", sysInstr);
-        body.put("contents", List.of(userContent));
-        body.put("generationConfig", Map.of("responseMimeType", "application/json"));
+        body.put("model", "llava");
+        body.put("prompt", "Extract structured data from this image. Respond with ONLY raw JSON matching the schema in the system prompt.\n\nSYSTEM PROMPT:\n" + SYSTEM_PROMPT);
+        body.put("images", List.of(base64Image));
+        body.put("stream", false);
+        body.put("format", "json");
 
         String requestBody = mapper.writeValueAsString(body);
-
-        String url = String.format(GEMINI_API_URL_TEMPLATE, MODEL, apiKey);
+        String url = OLLAMA_URL;
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -118,16 +98,11 @@ public class ScreenshotToCsvService {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) {
-            throw new RuntimeException("Gemini API error: " + response.statusCode() + " " + response.body());
+            throw new RuntimeException("Ollama API error: " + response.statusCode() + " " + response.body());
         }
 
         JsonNode root = mapper.readTree(response.body());
-        JsonNode candidates = root.path("candidates");
-        if (!candidates.isArray() || candidates.isEmpty()) {
-            throw new RuntimeException("Gemini returned no candidates: " + response.body());
-        }
-
-        String rawText = candidates.get(0).path("content").path("parts").get(0).path("text").asText();
+        String rawText = root.path("response").asText();
         String cleanJson = stripCodeFences(rawText);
 
         JsonNode parsed = mapper.readTree(cleanJson);

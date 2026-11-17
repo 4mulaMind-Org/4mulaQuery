@@ -23,3 +23,5 @@ app/target/
 
 # Env
 .env
+run.sh
+app/run.sh

@@ -29,12 +29,8 @@ import java.util.regex.Pattern;
 @Service
 public class ChatDataService {
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    private static final String MODEL = "gemini-3.5-flash-lite";
-    private static final String GEMINI_API_URL_TEMPLATE =
-            "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s";
+    private static final String OLLAMA_URL = "http://localhost:11434/api/chat";
+    private static final String OLLAMA_MODEL = "llama3";
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -139,7 +135,7 @@ public class ChatDataService {
 
         String finalRequestBody = mapper.writeValueAsString(body);
 
-        String rawText = callGemini(finalRequestBody);
+        String rawText = callOllamaChat(systemPrompt, history, userMessage, true);
         String cleanJson = stripCodeFences(rawText);
         JsonNode parsed = mapper.readTree(cleanJson);
 
@@ -292,8 +288,7 @@ public class ChatDataService {
         body.put("systemInstruction", sysInstr);
         body.put("contents", List.of(turnObject("user", question)));
 
-        String requestBody = mapper.writeValueAsString(body);
-        String rawText = callGemini(requestBody);
+        String rawText = callOllamaChat(systemPrompt, null, question, false);
         return rawText.trim();
     }
 
@@ -306,11 +301,28 @@ public class ChatDataService {
     // GEMINI CALL HELPER
     // =========================================================================
 
-    private String callGemini(String requestBody) throws Exception {
-        String url = String.format(GEMINI_API_URL_TEMPLATE, MODEL, apiKey);
+    private String callOllamaChat(String systemPrompt, List<ChatTurn> history, String userMessage, boolean jsonMode) throws Exception {
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+        if (history != null) {
+            for (ChatTurn t : history) {
+                messages.add(Map.of("role", t.role.equals("assistant") ? "assistant" : "user", "content", t.text));
+            }
+        }
+        messages.add(Map.of("role", "user", "content", userMessage));
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", OLLAMA_MODEL);
+        body.put("messages", messages);
+        body.put("stream", false);
+        if (jsonMode) {
+            body.put("format", "json");
+        }
+
+        String requestBody = mapper.writeValueAsString(body);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
+                .uri(URI.create(OLLAMA_URL))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
@@ -318,15 +330,11 @@ public class ChatDataService {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) {
-            throw new RuntimeException("Gemini API error: " + response.statusCode() + " " + response.body());
+            throw new RuntimeException("Ollama API error: " + response.statusCode() + " " + response.body());
         }
 
         JsonNode root = mapper.readTree(response.body());
-        JsonNode candidates = root.path("candidates");
-        if (!candidates.isArray() || candidates.isEmpty()) {
-            throw new RuntimeException("Gemini returned no candidates: " + response.body());
-        }
-        return candidates.get(0).path("content").path("parts").get(0).path("text").asText();
+        return root.path("message").path("content").asText();
     }
 
     // =========================================================================
