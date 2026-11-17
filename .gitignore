@@ -25,3 +25,5 @@ app/target/
 .env
 run.sh
 app/run.sh
+run.sh
+app/run.sh
